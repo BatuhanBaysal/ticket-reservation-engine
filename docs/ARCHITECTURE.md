@@ -1,0 +1,131 @@
+# Architecture
+
+Status: design. No service code exists yet. Everything below is **Planned**, except where a decision record is linked.
+
+## Services
+
+| Module              | Responsibility                                                                   | Data                             |
+|:--------------------|:---------------------------------------------------------------------------------|:---------------------------------|
+| `common-events`     | Message envelope and event/command records (Java `record`).                      | none                             |
+| `inventory-service` | Seat state, holds, expiry. [ADR-001](adr/ADR-001-seat-hold.md)                   | PostgreSQL `inventory_db`, Redis |
+| `order-service`     | Order API, saga orchestration. [ADR-002](adr/ADR-002-orchestrated-saga.md)       | PostgreSQL `order_db`            |
+| `payment-service`   | Simulated payments, idempotent by key. [ADR-004](adr/ADR-004-payment-timeout.md) | PostgreSQL `payment_db`          |
+| `api-gateway`       | Routing, rate limit, correlation id, internal secret.                            | Redis                            |
+
+Every service that publishes messages has an outbox and an inbox ([ADR-003](adr/ADR-003-outbox-and-inbox.md)).
+
+## Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant O as order-service
+    participant I as inventory-service
+    participant P as payment-service
+    C->>O: POST /orders (Idempotency-Key)
+    O->>I: HoldSeatCommand
+    I-->>O: SeatHeld
+    O->>P: ProcessPaymentCommand
+    P-->>O: PaymentCompleted
+    O->>I: ConfirmSeatCommand
+    I-->>O: SeatConfirmed
+    Note over O: order CONFIRMED
+```
+
+Compensation paths (details in ADR-002 and ADR-004):
+
+| Trigger                                  | Result                                                        |
+|:-----------------------------------------|:--------------------------------------------------------------|
+| `SeatHoldRejected`                       | `CANCELLED(SEAT_UNAVAILABLE)`                                 |
+| `PaymentDeclined`                        | release seat, `CANCELLED(PAYMENT_DECLINED)`                   |
+| `SeatHoldExpired` while awaiting payment | cancel payment, `CANCELLED(HOLD_EXPIRED)`                     |
+| `SeatConfirmFailed`                      | refund, `CANCELLED(SEAT_LOST)`                                |
+| No payment reply after 3 attempts        | release seat, cancel payment, `CANCELLED(PAYMENT_UNRESOLVED)` |
+
+## State machines
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> AWAITING_PAYMENT: SeatHeld
+    PENDING --> CANCELLED: SeatHoldRejected
+    AWAITING_PAYMENT --> CONFIRMED: SeatConfirmed
+    AWAITING_PAYMENT --> CANCELLED: declined / expired / lost / unresolved
+    CONFIRMED --> [*]
+    CANCELLED --> [*]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> AVAILABLE
+    AVAILABLE --> HELD: hold
+    HELD --> AVAILABLE: release / expiry
+    HELD --> SOLD: confirm
+```
+
+## Data model
+
+Money columns use `NUMERIC(19, 4)` and `BigDecimal` in code.
+
+```mermaid
+erDiagram
+    ORDERS {
+        uuid id PK
+        text idempotency_key UK
+        text customer_id
+        text event_id
+        text seat_id
+        numeric amount
+        text status
+        text cancel_reason
+        timestamp payment_deadline
+        int payment_attempts
+        bigint version
+    }
+    SEAT_INVENTORY {
+        uuid id PK
+        text event_id
+        text seat_id
+        text status
+        uuid held_by_order_id
+        timestamp hold_expires_at
+        numeric price
+        bigint version
+    }
+    PAYMENT {
+        uuid id PK
+        uuid payment_request_id UK
+        uuid order_id
+        numeric amount
+        text status
+    }
+    OUTBOX_EVENT {
+        uuid id PK
+        text topic
+        text message_key
+        jsonb payload
+        timestamp published_at
+    }
+    PROCESSED_MESSAGE {
+        uuid message_id PK
+        text consumer
+        timestamp processed_at
+    }
+```
+
+`SEAT_INVENTORY` has `UNIQUE (event_id, seat_id)`. `OUTBOX_EVENT` and `PROCESSED_MESSAGE` exist in each of the three databases. The three databases are separate. The diagram shows them together for reading only.
+
+Index notes (the "why" is recorded next to each Liquibase changeset):
+- `seat_inventory (hold_expires_at) WHERE status = 'HELD'`: the expiry job reads only held rows.
+- `orders (payment_deadline) WHERE status = 'AWAITING_PAYMENT'`: the retry job reads only these rows.
+- `outbox_event (created_at) WHERE published_at IS NULL`: the poller reads only unpublished rows.
+
+## Decision records
+
+| ADR                                      | Decision                                                  |
+|:-----------------------------------------|:----------------------------------------------------------|
+| [001](adr/ADR-001-seat-hold.md)          | PostgreSQL decides who holds a seat. Redis is a gate.     |
+| [002](adr/ADR-002-orchestrated-saga.md)  | order-service orchestrates the saga.                      |
+| [003](adr/ADR-003-outbox-and-inbox.md)   | Outbox for publishing, inbox for repeats.                 |
+| [004](adr/ADR-004-payment-timeout.md)    | A timeout is an unknown outcome. Retry with the same key. |
+| [005](adr/ADR-005-scope-and-platform.md) | Boot 4.1, five modules, what is out of scope.             |
