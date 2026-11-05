@@ -14,12 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/ARCHITECTURE.md`, `docs/ENGINEERING_STANDARDS.md` and decision records `ADR-001` to `ADR-005`
 - CI workflow, Dependabot configuration, GitHub issue, pull request and milestone templates
 - README with guarantees, Status table and Known limitations
+- Local infrastructure with Docker Compose: PostgreSQL (three databases), Kafka (KRaft, single broker), Redis
 
 ### Planned for 0.0.1
-- Local infrastructure with Docker Compose (PostgreSQL, Kafka, Redis)
 - Service skeletons: `common-events`, `inventory-service`, `order-service`, `payment-service`
-
-Move these entries under `## [0.0.1] - <release date>` when the tag is created.
 
 ### Planned later
 - Event contracts, seat holds, saga, payments, gateway, benchmarks (`0.1.0` – `0.6.0`)
