@@ -128,12 +128,15 @@ git clone https://github.com/BatuhanBaysal/ticket-reservation-engine.git
 cd ticket-reservation-engine
 cp .env.example .env
 
-# Build and verify all modules (works now; no modules yet)
 mvn clean verify
 
-# Local infrastructure: Planned for v0.0.1 (Docker Compose issue)
-# docker compose -f infra/docker-compose.yml up -d
+docker compose --env-file .env -f infra/docker-compose.yml up -d
+docker compose --env-file .env -f infra/docker-compose.yml ps
 ```
+
+PostgreSQL listens on `POSTGRES_PORT`, Kafka on `9092`, Redis on `REDIS_PORT`. If a port is already in use, change it in `.env`.
+
+Stop the containers with `docker compose --env-file .env -f infra/docker-compose.yml down`. Add `-v` to delete the PostgreSQL data. The init script that creates the three databases runs only on the first start with an empty volume.
 
 ---
 
