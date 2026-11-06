@@ -7,7 +7,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - Packages: `controller`, `service`, `repository`, `domain`. No business logic in controllers.
 - Input validation with Bean Validation. One global exception handler that returns `ProblemDetail` (RFC 7807).
 - Config profiles: `local`, `test`. Secrets come from environment variables.
-- Actuator health endpoints. OpenAPI through springdoc (check Boot 4.1 support when the service skeletons are added (v0.0.1)).
+- Actuator health endpoints. OpenAPI through springdoc (check Boot 4.1 support when the service skeletons are added).
 - One multi-stage Dockerfile per service.
 - Correlation id in every log line (`correlationId` from the message envelope or request header).
 - Money: `NUMERIC(19, 4)` in the database, `BigDecimal` in code.
@@ -42,6 +42,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 | 11 | Serialization of each message type                  | Round trip equals original                          | v0.1.0          |
 | 12 | One API flow through the gateway                    | Order `CONFIRMED`                                   | v0.5.0          |
 
+- Unit tests follow Arrange-Act-Assert. Phases are separated by a blank line, without phase comments. One behavior per test.
 - Integration tests use Testcontainers: real PostgreSQL, Redis and Kafka.
 - JaCoCo reports coverage. There is no percentage gate. The tests above are the quality bar.
 
