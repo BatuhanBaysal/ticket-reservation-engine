@@ -18,6 +18,10 @@
     <name>ticket-reservation-engine</name>
     <description>Event-driven ticket reservation backend: seat holds, orchestrated saga, idempotent payments</description>
 
+    <modules>
+        <module>common-events</module>
+    </modules>
+
     <properties>
         <java.version>21</java.version>
         <spring-cloud.version>2025.1.2</spring-cloud.version>
