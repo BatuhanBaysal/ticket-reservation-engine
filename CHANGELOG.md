@@ -15,9 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI workflow, Dependabot configuration, GitHub issue, pull request and milestone templates
 - README with guarantees, Status table and Known limitations
 - Local infrastructure with Docker Compose: PostgreSQL (three databases), Kafka (KRaft, single broker), Redis
+- `common-events` module with the `MessageEnvelope` record
 
 ### Planned for 0.0.1
-- Service skeletons: `common-events`, `inventory-service`, `order-service`, `payment-service`
+- Service skeletons: `inventory-service`, `order-service`, `payment-service`
 
 ### Planned later
 - Event contracts, seat holds, saga, payments, gateway, benchmarks (`0.1.0` – `0.6.0`)
