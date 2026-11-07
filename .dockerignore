@@ -1,0 +1,8 @@
+.git
+.idea
+.github
+docs
+infra
+**/target
+.env
+.env.*
