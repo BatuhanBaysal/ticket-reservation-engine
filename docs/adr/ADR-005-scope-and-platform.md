@@ -16,7 +16,7 @@ The first draft listed 7 modules, a React dashboard, Grafana, JWT and PDF genera
 - Spring Boot 4.1.x. Boot 3.4 ended OSS support in December 2025. Boot 3.5, the last 3.x line, ended in June 2026. A new project starts on a supported line.
 - Spring Cloud 2025.1.x, used only by api-gateway. Release train 2025.1.2 is compatible with Boot 4.1.
 - Kafka client, Liquibase, Testcontainers, JUnit and JaCoCo versions come from the Boot BOM.
-- Check before adding a dependency: it must support Boot 4.1. Check springdoc when the service skeletons are added (v0.0.1).
+- Check before adding a dependency: it must support Boot 4.1. springdoc 3.x targets Boot 4.0: check Boot 4.1 support before order-service gets its first endpoint (v0.3.0).
 
 ### v1.0.0 scope
 

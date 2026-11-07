@@ -7,7 +7,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - Packages: `controller`, `service`, `repository`, `domain`. No business logic in controllers.
 - Input validation with Bean Validation. One global exception handler that returns `ProblemDetail` (RFC 7807).
 - Config profiles: `local`, `test`. Secrets come from environment variables.
-- Actuator health endpoints. OpenAPI through springdoc (check Boot 4.1 support when the service skeletons are added).
+- Actuator health endpoints. OpenAPI through springdoc. springdoc 3.x targets Boot 4.0. Check Boot 4.1 support before the first REST endpoint (order-service, v0.3.0).
 - One multi-stage Dockerfile per service.
 - Correlation id in every log line (`correlationId` from the message envelope or request header).
 - Money: `NUMERIC(19, 4)` in the database, `BigDecimal` in code.
