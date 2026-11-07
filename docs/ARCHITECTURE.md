@@ -1,6 +1,6 @@
 # Architecture
 
-Status: design. No service code exists yet. Everything below is **Planned**, except where a decision record is linked.
+Status: design. The `common-events` module and an `inventory-service` skeleton exist. Everything below is **Planned**, except where a decision record is linked.
 
 ## Services
 

@@ -6,7 +6,7 @@ A backend for reserving event seats. The goal is that each seat is sold at most 
 
 Stack: Java 21, Spring Boot 4.1, Apache Kafka, PostgreSQL, Redis.
 
-> **Status:** `v0.0.1` in progress. The repository holds the design, the parent POM and CI. No service code exists yet. Everything below labeled **Planned** is not built.
+> **Status:** `v0.0.1` in progress. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module and an `inventory-service` skeleton. Seat holds, orders and payments are not built. Everything below labeled **Planned** is not built.
 
 ---
 
@@ -123,6 +123,8 @@ None yet. This table is filled from `v0.2.0`.
 
 ## Local setup
 
+Requirements: Java 21, Maven 3.9 and Docker. The tests start PostgreSQL and Redis with Testcontainers, so Docker must be running when you run `mvn clean verify`.
+
 ```bash
 git clone https://github.com/BatuhanBaysal/ticket-reservation-engine.git
 cd ticket-reservation-engine
@@ -133,6 +135,15 @@ mvn clean verify
 docker compose --env-file .env -f infra/docker-compose.yml up -d
 docker compose --env-file .env -f infra/docker-compose.yml ps
 ```
+
+Start the inventory service with the `local` profile, which reads `.env`:
+
+```bash
+mvn -DskipTests install
+mvn -pl inventory-service spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+Check it at `http://localhost:8082/actuator/health`.
 
 PostgreSQL listens on `POSTGRES_PORT`, Kafka on `9092`, Redis on `REDIS_PORT`. If a port is already in use, change it in `.env`.
 
