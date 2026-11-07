@@ -1,0 +1,14 @@
+spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.ticket: DEBUG
