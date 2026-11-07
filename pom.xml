@@ -20,6 +20,7 @@
 
     <modules>
         <module>common-events</module>
+        <module>inventory-service</module>
     </modules>
 
     <properties>
@@ -35,6 +36,11 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.ticket</groupId>
+                <artifactId>common-events</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
