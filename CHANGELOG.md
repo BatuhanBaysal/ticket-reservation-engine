@@ -17,9 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Local infrastructure with Docker Compose: PostgreSQL (three databases), Kafka (KRaft, single broker), Redis
 - `common-events` module with the `MessageEnvelope` record
 - `inventory-service` skeleton: Spring Boot application with PostgreSQL, Redis, a Liquibase baseline, a health endpoint, a Dockerfile and a Testcontainers smoke test
-
-### Planned for 0.0.1
-- Service skeletons: `order-service`, `payment-service`
+- `order-service` and `payment-service` skeletons: Spring Boot applications with PostgreSQL, Kafka producer and consumer settings, a Liquibase baseline, a health endpoint, Dockerfiles and Testcontainers smoke tests
 
 ### Planned later
 - Event contracts, seat holds, saga, payments, gateway, benchmarks (`0.1.0` – `0.6.0`)
