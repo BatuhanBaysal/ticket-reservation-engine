@@ -1,6 +1,6 @@
 # Architecture
 
-Status: design. The `common-events` module and an `inventory-service` skeleton exist. Everything below is **Planned**, except where a decision record is linked.
+Status: design. The `common-events` module and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything below is **Planned**, except where a decision record is linked.
 
 ## Services
 
