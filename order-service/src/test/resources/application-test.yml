@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    username: test
+    password: test
+
+logging:
+  level:
+    root: WARN
+    com.ticket: INFO
