@@ -6,7 +6,7 @@ A backend for reserving event seats. The goal is that each seat is sold at most 
 
 Stack: Java 21, Spring Boot 4.1, Apache Kafka, PostgreSQL, Redis.
 
-> **Status:** `v0.0.1` in progress. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module and skeletons of `inventory-service`, `order-service` and `payment-service`. Seat holds, orders and payments are not built. Everything below labeled **Planned** is not built.
+> **Status:** `v0.0.1` released. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module and skeletons of `inventory-service`, `order-service` and `payment-service`. Seat holds, orders and payments are not built. Next: `v0.1.0`, the event and command contracts. Everything below labeled **Planned** is not built.
 
 ---
 
