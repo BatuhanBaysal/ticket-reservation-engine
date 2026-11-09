@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- `docs/adr/ADR-006-message-wire-format.md`: wire format and compatibility rules of messages
+
+---
+
+## [0.0.1] - 2026-11-08
+### Added
 - Monorepo root files: `.gitignore`, `.editorconfig`, `.gitattributes`, `.env.example`, `LICENSE`
 - Root Maven parent POM on Spring Boot 4.1 and Spring Cloud 2025.1
 - `docs/ARCHITECTURE.md`, `docs/ENGINEERING_STANDARDS.md` and decision records `ADR-001` to `ADR-005`
@@ -19,5 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `inventory-service` skeleton: Spring Boot application with PostgreSQL, Redis, a Liquibase baseline, a health endpoint, a Dockerfile and a Testcontainers smoke test
 - `order-service` and `payment-service` skeletons: Spring Boot applications with PostgreSQL, Kafka producer and consumer settings, a Liquibase baseline, a health endpoint, Dockerfiles and Testcontainers smoke tests
 
-### Planned later
-- Event contracts, seat holds, saga, payments, gateway, benchmarks (`0.1.0` – `0.6.0`)
+[Unreleased]: https://github.com/BatuhanBaysal/ticket-reservation-engine/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/BatuhanBaysal/ticket-reservation-engine/releases/tag/v0.0.1
