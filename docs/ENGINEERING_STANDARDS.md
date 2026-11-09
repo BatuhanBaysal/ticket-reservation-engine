@@ -22,6 +22,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 ## Messaging
 
 - Envelope, outbox, inbox: [ADR-003](adr/ADR-003-outbox-and-inbox.md).
+- Wire format and compatibility rules: [ADR-006](adr/ADR-006-message-wire-format.md).
 - Producer: `acks=all`, idempotence on. Consumer: manual commit after the database commit.
 - Retry 3 times, then `<topic>.dlt`.
 

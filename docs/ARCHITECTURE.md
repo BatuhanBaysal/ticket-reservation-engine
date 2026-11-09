@@ -122,10 +122,11 @@ Index notes (the "why" is recorded next to each Liquibase changeset):
 
 ## Decision records
 
-| ADR                                      | Decision                                                  |
-|:-----------------------------------------|:----------------------------------------------------------|
-| [001](adr/ADR-001-seat-hold.md)          | PostgreSQL decides who holds a seat. Redis is a gate.     |
-| [002](adr/ADR-002-orchestrated-saga.md)  | order-service orchestrates the saga.                      |
-| [003](adr/ADR-003-outbox-and-inbox.md)   | Outbox for publishing, inbox for repeats.                 |
-| [004](adr/ADR-004-payment-timeout.md)    | A timeout is an unknown outcome. Retry with the same key. |
-| [005](adr/ADR-005-scope-and-platform.md) | Boot 4.1, five modules, what is out of scope.             |
+| ADR                                       | Decision                                                           |
+|:------------------------------------------|:-------------------------------------------------------------------|
+| [001](adr/ADR-001-seat-hold.md)           | PostgreSQL decides who holds a seat. Redis is a gate.              |
+| [002](adr/ADR-002-orchestrated-saga.md)   | order-service orchestrates the saga.                               |
+| [003](adr/ADR-003-outbox-and-inbox.md)    | Outbox for publishing, inbox for repeats.                          |
+| [004](adr/ADR-004-payment-timeout.md)     | A timeout is an unknown outcome. Retry with the same key.          |
+| [005](adr/ADR-005-scope-and-platform.md)  | Boot 4.1, five modules, what is out of scope.                      |
+| [006](adr/ADR-006-message-wire-format.md) | Messages are JSON text with a `type` field. Fields are only added. |
