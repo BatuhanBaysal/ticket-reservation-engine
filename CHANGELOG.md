@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `docs/adr/ADR-006-message-wire-format.md`: wire format and compatibility rules of messages
 - `Topics` and `MessageTypes` in `common-events`: the four topic names of ADR-002 and the 13 message type names
+- Inventory messages in `common-events`: three commands and five events as validated records, with the reason codes of `SeatHoldRejected` and `SeatConfirmFailed`
 
 ---
 
