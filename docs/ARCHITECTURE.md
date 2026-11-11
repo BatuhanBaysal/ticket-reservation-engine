@@ -1,6 +1,6 @@
 # Architecture
 
-Status: design. The `common-events` module and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything below is **Planned**, except where a decision record is linked.
+Status: design. The `common-events` module (envelope, topic and type names, inventory messages) and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything else below is **Planned**, except where a decision record is linked.
 
 ## Services
 
@@ -62,6 +62,41 @@ stateDiagram-v2
     HELD --> AVAILABLE: release / expiry
     HELD --> SOLD: confirm
 ```
+
+## Message contracts
+
+Every message is the payload of the envelope (ADR-003) and is written as JSON ([ADR-006](adr/ADR-006-message-wire-format.md)). The records live in `common-events`, the topic names in `Topics` and the type names in `MessageTypes`.
+
+### Inventory messages
+
+Topic `inventory.commands`, sent by order-service, read by inventory-service:
+
+| Message              | Fields                         |
+|:---------------------|:-------------------------------|
+| `HoldSeatCommand`    | `orderId`, `eventId`, `seatId` |
+| `ConfirmSeatCommand` | `orderId`, `eventId`, `seatId` |
+| `ReleaseSeatCommand` | `orderId`, `eventId`, `seatId` |
+
+Topic `inventory.events`, sent by inventory-service, read by order-service:
+
+| Message             | Fields                                                   |
+|:--------------------|:---------------------------------------------------------|
+| `SeatHeld`          | `orderId`, `eventId`, `seatId`, `price`, `holdExpiresAt` |
+| `SeatHoldRejected`  | `orderId`, `eventId`, `seatId`, `reason`                 |
+| `SeatConfirmed`     | `orderId`, `eventId`, `seatId`                           |
+| `SeatConfirmFailed` | `orderId`, `eventId`, `seatId`, `reason`                 |
+| `SeatHoldExpired`   | `orderId`, `eventId`, `seatId`                           |
+
+Field types: `orderId` is a UUID. `eventId`, `seatId` and `reason` are text. `price` is a decimal amount greater than zero. `holdExpiresAt` is a UTC timestamp. No field may be null and text fields must not be blank.
+
+`SeatHeld` carries the price because order-service needs the amount for `ProcessPaymentCommand` (ADR-002, step 2).
+
+Reason codes are text, not enums, so a new code does not break an old consumer:
+
+| Message             | Codes                                |
+|:--------------------|:-------------------------------------|
+| `SeatHoldRejected`  | `SEAT_UNAVAILABLE`, `SEAT_NOT_FOUND` |
+| `SeatConfirmFailed` | `HOLD_NOT_FOUND`, `SEAT_TAKEN`       |
 
 ## Data model
 
