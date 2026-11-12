@@ -1,6 +1,6 @@
 # Architecture
 
-Status: design. The `common-events` module (envelope, topic and type names, inventory messages) and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything else below is **Planned**, except where a decision record is linked.
+Status: design. The `common-events` module (envelope, topic and type names, inventory and payment messages) and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything else below is **Planned**, except where a decision record is linked.
 
 ## Services
 
@@ -97,6 +97,34 @@ Reason codes are text, not enums, so a new code does not break an old consumer:
 |:--------------------|:-------------------------------------|
 | `SeatHoldRejected`  | `SEAT_UNAVAILABLE`, `SEAT_NOT_FOUND` |
 | `SeatConfirmFailed` | `HOLD_NOT_FOUND`, `SEAT_TAKEN`       |
+
+### Payment messages
+
+Topic `payment.commands`, sent by order-service, read by payment-service:
+
+| Message                 | Fields                                  |
+|:------------------------|:----------------------------------------|
+| `ProcessPaymentCommand` | `paymentRequestId`, `orderId`, `amount` |
+| `CancelPaymentCommand`  | `paymentRequestId`, `orderId`           |
+
+Topic `payment.events`, sent by payment-service, read by order-service:
+
+| Message            | Fields                                   |
+|:-------------------|:-----------------------------------------|
+| `PaymentCompleted` | `paymentRequestId`, `orderId`, `amount`  |
+| `PaymentDeclined`  | `paymentRequestId`, `orderId`, `reason`  |
+| `PaymentCancelled` | `paymentRequestId`, `orderId`, `outcome` |
+
+Field types: `paymentRequestId` and `orderId` are UUIDs. `amount` is a decimal amount greater than zero. `reason` and `outcome` are text. No field may be null and text fields must not be blank.
+
+In the saga, `paymentRequestId` equals the order id (ADR-002, step 2). payment-service stores and looks up requests by `paymentRequestId` only (ADR-004).
+
+`outcome` of `PaymentCancelled` is a text code, not an enum:
+
+| Code        | Meaning                                                     |
+|:------------|:------------------------------------------------------------|
+| `REFUNDED`  | The payment had been charged and was refunded               |
+| `CANCELLED` | No charge existed. A later charge with this key is rejected |
 
 ## Data model
 
