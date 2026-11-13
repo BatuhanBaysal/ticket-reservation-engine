@@ -23,6 +23,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 
 - Envelope, outbox, inbox: [ADR-003](adr/ADR-003-outbox-and-inbox.md).
 - Wire format and compatibility rules: [ADR-006](adr/ADR-006-message-wire-format.md).
+- Services write and read messages with `MessageCodec` only. They do not configure their own JSON mapper for messages.
 - Producer: `acks=all`, idempotence on. Consumer: manual commit after the database commit.
 - Retry 3 times, then `<topic>.dlt`.
 
@@ -66,3 +67,4 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - `main` is protected by a ruleset: no direct pushes, no force pushes, no deletion. Changes go through pull requests.
 - Merge method: rebase and merge by default. Squash and merge for Dependabot pull requests and for pull requests with fix-up commits.
 - One tag and one release per milestone.
+- The Maven version is the next release with the `-SNAPSHOT` suffix, for example `0.1.0-SNAPSHOT` during `v0.1.0`. The tag marks the release. The first pull request of the next milestone raises the version.
