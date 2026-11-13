@@ -13,7 +13,7 @@
 
     <groupId>com.ticket</groupId>
     <artifactId>ticket-reservation-engine</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>ticket-reservation-engine</name>
     <description>Event-driven ticket reservation backend: seat holds, orchestrated saga, idempotent payments</description>
