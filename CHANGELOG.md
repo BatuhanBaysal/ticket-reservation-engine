@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Topics` and `MessageTypes` in `common-events`: the four topic names of ADR-002 and the 13 message type names
 - Inventory messages in `common-events`: three commands and five events as validated records, with the reason codes of `SeatHoldRejected` and `SeatConfirmFailed`
 - Payment messages in `common-events`: two commands and three events as validated records, with the outcome codes of `PaymentCancelled`
+- JSON codec in `common-events` (Jackson 3): `MessageCodec`, the registry of the 13 message types and the exceptions `UnknownMessageTypeException` and `InvalidMessageException`
 
 ---
 
