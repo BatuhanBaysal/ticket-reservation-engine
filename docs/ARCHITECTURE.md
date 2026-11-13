@@ -1,12 +1,12 @@
 # Architecture
 
-Status: design. The `common-events` module (envelope, topic and type names, inventory and payment messages) and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything else below is **Planned**, except where a decision record is linked.
+Status: design. The `common-events` module (envelope, topic and type names, inventory and payment messages, JSON codec) and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything else below is **Planned**, except where a decision record is linked.
 
 ## Services
 
 | Module              | Responsibility                                                                   | Data                             |
 |:--------------------|:---------------------------------------------------------------------------------|:---------------------------------|
-| `common-events`     | Message envelope and event/command records (Java `record`).                      | none                             |
+| `common-events`     | Message envelope, event and command records (Java `record`) and the JSON codec.  | none                             |
 | `inventory-service` | Seat state, holds, expiry. [ADR-001](adr/ADR-001-seat-hold.md)                   | PostgreSQL `inventory_db`, Redis |
 | `order-service`     | Order API, saga orchestration. [ADR-002](adr/ADR-002-orchestrated-saga.md)       | PostgreSQL `order_db`            |
 | `payment-service`   | Simulated payments, idempotent by key. [ADR-004](adr/ADR-004-payment-timeout.md) | PostgreSQL `payment_db`          |
@@ -125,6 +125,16 @@ In the saga, `paymentRequestId` equals the order id (ADR-002, step 2). payment-s
 |:------------|:------------------------------------------------------------|
 | `REFUNDED`  | The payment had been charged and was refunded               |
 | `CANCELLED` | No charge existed. A later charge with this key is rejected |
+
+### Codec
+
+`MessageCodec` in `common-events` writes an envelope as JSON and reads it back. On reading it takes the payload class from `type`. Instants are ISO-8601 text and amounts are decimal strings. Fields the record does not have are ignored.
+
+| Case                                                                                                | Result                        |
+|:----------------------------------------------------------------------------------------------------|:------------------------------|
+| `type` is not registered                                                                            | `UnknownMessageTypeException` |
+| Malformed JSON, a missing envelope or payload field, or a value that breaks the rules of its record | `InvalidMessageException`     |
+| On writing, the payload class does not match `type`                                                 | `InvalidMessageException`     |
 
 ## Data model
 

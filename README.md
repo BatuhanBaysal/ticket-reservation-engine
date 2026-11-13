@@ -6,7 +6,7 @@ A backend for reserving event seats. The goal is that each seat is sold at most 
 
 Stack: Java 21, Spring Boot 4.1, Apache Kafka, PostgreSQL, Redis.
 
-> **Status:** `v0.0.1` released. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module and skeletons of `inventory-service`, `order-service` and `payment-service`. Seat holds, orders and payments are not built. Next: `v0.1.0`, the event and command contracts. Everything below labeled **Planned** is not built.
+> **Status:** `v0.1.0` in progress, `v0.0.1` released. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module with the message records and the JSON codec, and skeletons of `inventory-service`, `order-service` and `payment-service`. Seat holds, orders and payments are not built. Everything below labeled **Planned** is not built.
 
 ---
 
@@ -55,13 +55,13 @@ Full test list: [ENGINEERING_STANDARDS.md](docs/ENGINEERING_STANDARDS.md).
 
 Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-| Module              | Responsibility                                        |
-|:--------------------|:------------------------------------------------------|
-| `common-events`     | Message envelope, commands and events as Java records |
-| `inventory-service` | Seat state, holds, hold expiry                        |
-| `order-service`     | Order API, saga state machine, retries                |
-| `payment-service`   | Simulated payments, idempotent by key                 |
-| `api-gateway`       | Routing, rate limit, correlation id, internal secret  |
+| Module              | Responsibility                                                    |
+|:--------------------|:------------------------------------------------------------------|
+| `common-events`     | Message envelope, commands and events as Java records, JSON codec |
+| `inventory-service` | Seat state, holds, hold expiry                                    |
+| `order-service`     | Order API, saga state machine, retries                            |
+| `payment-service`   | Simulated payments, idempotent by key                             |
+| `api-gateway`       | Routing, rate limit, correlation id, internal secret              |
 
 ---
 
@@ -70,7 +70,7 @@ Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Milestone | Scope                                                                                            | Status |
 |:----------|:-------------------------------------------------------------------------------------------------|:------:|
 | `v0.0.1`  | Foundation: parent POM, docs, ADRs, CI, local infrastructure (Docker Compose), service skeletons |   ✅    |
-| `v0.1.0`  | Event and command contracts, serialization tests                                                 |   ⏳    |
+| `v0.1.0`  | Event and command contracts, serialization tests                                                 |   🚧   |
 | `v0.2.0`  | Seat hold, confirm, release, expiry. Concurrency tests                                           |   ⏳    |
 | `v0.3.0`  | Order API, idempotency key, saga state machine, outbox, inbox                                    |   ⏳    |
 | `v0.4.0`  | Idempotent payment, simulator modes, compensation tests                                          |   ⏳    |
