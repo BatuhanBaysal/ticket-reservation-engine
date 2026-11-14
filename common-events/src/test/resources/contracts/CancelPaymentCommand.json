@@ -1,0 +1,10 @@
+{
+  "messageId": "0f8b2c36-5d0e-4c53-9b1a-7e2a5f4d9c10",
+  "correlationId": "c-7f3a91",
+  "type": "CancelPaymentCommand",
+  "occurredAt": "2026-11-09T10:15:30.123Z",
+  "payload": {
+    "paymentRequestId": "9a4c1e72-3b58-4d0f-a6e1-8c27d5b3f401",
+    "orderId": "5b2d7a40-91c8-4e6f-8d3a-2c4f1a9b7e55"
+  }
+}
