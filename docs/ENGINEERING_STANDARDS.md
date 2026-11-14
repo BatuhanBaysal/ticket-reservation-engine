@@ -24,6 +24,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - Envelope, outbox, inbox: [ADR-003](adr/ADR-003-outbox-and-inbox.md).
 - Wire format and compatibility rules: [ADR-006](adr/ADR-006-message-wire-format.md).
 - Services write and read messages with `MessageCodec` only. They do not configure their own JSON mapper for messages.
+- Every message type has a sample message and a stored JSON file in the tests of `common-events`. A change of the wire format changes the file in the same pull request.
 - Producer: `acks=all`, idempotence on. Consumer: manual commit after the database commit.
 - Retry 3 times, then `<topic>.dlt`.
 
