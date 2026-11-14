@@ -6,8 +6,8 @@ A backend for reserving event seats. The goal is that each seat is sold at most 
 
 Stack: Java 21, Spring Boot 4.1, Apache Kafka, PostgreSQL, Redis.
 
-> **Status:** `v0.1.0` in progress, `v0.0.1` released. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module with the message records and the JSON codec, and skeletons of `inventory-service`, `order-service` and `payment-service`. Seat holds, orders and payments are not built. Everything below labeled **Planned** is not built.
-
+> **Status:** `v0.1.0` released. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module with the message contracts and a tested JSON codec, and skeletons of `inventory-service`, `order-service` and `payment-service`. Seat holds, orders and payments are not built. Next: `v0.2.0`, seat holds in `inventory-service`. Everything below labeled **Planned** is not built.
+ 
 ---
 
 ## What this project proves (Planned)
@@ -70,7 +70,7 @@ Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Milestone | Scope                                                                                            | Status |
 |:----------|:-------------------------------------------------------------------------------------------------|:------:|
 | `v0.0.1`  | Foundation: parent POM, docs, ADRs, CI, local infrastructure (Docker Compose), service skeletons |   ✅    |
-| `v0.1.0`  | Event and command contracts, serialization tests                                                 |   🚧   |
+| `v0.1.0`  | Event and command contracts, serialization tests                                                 |   ✅    |
 | `v0.2.0`  | Seat hold, confirm, release, expiry. Concurrency tests                                           |   ⏳    |
 | `v0.3.0`  | Order API, idempotency key, saga state machine, outbox, inbox                                    |   ⏳    |
 | `v0.4.0`  | Idempotent payment, simulator modes, compensation tests                                          |   ⏳    |
