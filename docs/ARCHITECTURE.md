@@ -1,6 +1,6 @@
 # Architecture
 
-Status: design. The `common-events` module (envelope, topic and type names, inventory and payment messages, JSON codec) and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything else below is **Planned**, except where a decision record is linked.
+Status: design. The `common-events` module (envelope, topic and type names, inventory and payment messages, JSON codec with contract tests) and skeletons of `inventory-service`, `order-service` and `payment-service` exist. Everything else below is **Planned**, except where a decision record is linked.
 
 ## Services
 
@@ -135,6 +135,10 @@ In the saga, `paymentRequestId` equals the order id (ADR-002, step 2). payment-s
 | `type` is not registered                                                                            | `UnknownMessageTypeException` |
 | Malformed JSON, a missing envelope or payload field, or a value that breaks the rules of its record | `InvalidMessageException`     |
 | On writing, the payload class does not match `type`                                                 | `InvalidMessageException`     |
+
+### Contract tests
+
+Every message type has a sample message in the tests of `common-events` and a stored JSON file in `src/test/resources/contracts/<Type>.json`. The tests check three things: the codec writes the stored JSON, it reads the stored JSON back into the sample, and a round trip returns the same message. A change of a field name or format fails these tests, and the stored file changes in the same pull request ([ADR-006](adr/ADR-006-message-wire-format.md)).
 
 ## Data model
 
