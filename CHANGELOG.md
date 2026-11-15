@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased]
+### Added
+- Seat table `seat_inventory` in `inventory-service` with a constraint for every seat state and the expiry index, and the `Seat` entity with a version for optimistic locking
 
 ---
 
