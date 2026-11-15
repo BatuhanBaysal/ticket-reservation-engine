@@ -1,0 +1,66 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-seat-inventory
+      author: batuhan
+      changes:
+        - createTable:
+            tableName: seat_inventory
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_seat_inventory
+                    nullable: false
+              - column:
+                  name: event_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: seat_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: held_by_order_id
+                  type: uuid
+              - column:
+                  name: hold_expires_at
+                  type: timestamp with time zone
+              - column:
+                  name: price
+                  type: numeric(19,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: seat_inventory
+            columnNames: event_id, seat_id
+            constraintName: uq_seat_inventory_event_seat
+        - sql:
+            sql: ALTER TABLE seat_inventory ADD CONSTRAINT ck_seat_inventory_price CHECK (price > 0)
+        - sql:
+            sql: |
+              ALTER TABLE seat_inventory ADD CONSTRAINT ck_seat_inventory_state CHECK (
+                (status = 'AVAILABLE' AND held_by_order_id IS NULL AND hold_expires_at IS NULL)
+                OR (status = 'HELD' AND held_by_order_id IS NOT NULL AND hold_expires_at IS NOT NULL)
+                OR (status = 'SOLD' AND held_by_order_id IS NOT NULL AND hold_expires_at IS NULL))
+  - changeSet:
+      id: 001-seat-inventory-expiry-index
+      author: batuhan
+      comment: The expiry job reads only held rows, so the index covers only those rows.
+      changes:
+        - sql:
+            sql: CREATE INDEX idx_seat_inventory_held_expiry ON seat_inventory (hold_expires_at) WHERE status = 'HELD'
