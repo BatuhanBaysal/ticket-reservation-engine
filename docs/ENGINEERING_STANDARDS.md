@@ -16,7 +16,8 @@ Rules every module follows. A rule is **Planned** until the first module applies
 
 - All schema changes go through Liquibase. No manual tables.
 - Constraints: unique, foreign key and check constraints where the rule is a data rule.
-- Each index has a one-line reason next to its changeset.
+- Each index has a one-line reason next to its changeset (the `comment` of the changeset).
+- Timestamps: `timestamptz` in the database, `Instant` in code.
 - ER diagram: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Messaging
@@ -68,4 +69,4 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - `main` is protected by a ruleset: no direct pushes, no force pushes, no deletion. Changes go through pull requests.
 - Merge method: rebase and merge by default. Squash and merge for Dependabot pull requests and for pull requests with fix-up commits.
 - One tag and one release per milestone.
-- The Maven version is the next release with the `-SNAPSHOT` suffix, for example `0.1.0-SNAPSHOT` during `v0.1.0`. The tag marks the release. The first pull request of the next milestone raises the version.
+- The Maven version is the next release with the `-SNAPSHOT` suffix, for example `0.2.0-SNAPSHOT` during `v0.1.0`. The tag marks the release. The first pull request of the next milestone raises the version.
