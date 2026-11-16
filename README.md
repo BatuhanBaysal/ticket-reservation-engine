@@ -6,19 +6,17 @@ A backend for reserving event seats. The goal is that each seat is sold at most 
 
 Stack: Java 21, Spring Boot 4.1, Apache Kafka, PostgreSQL, Redis.
 
-> **Status:** `v0.2.0` in progress, `v0.1.0` released. The repository holds the design, the parent POM, CI, local infrastructure, the `common-events` module with the message contracts and a tested JSON codec, and skeletons of `inventory-service`, `order-service` and `payment-service`. The seat table of `inventory-service` exists. Seat holds, orders and payments are not built. Everything below labeled **Planned** is not built.
+> **Status:** `v0.2.0` in progress, `v0.1.0` released. What exists is listed in the [changelog](CHANGELOG.md). Everything below labeled **Planned** is not built.
 
 ---
 
 ## What this project proves (Planned)
 
-| Guarantee                            | How                                                                                                             | Test                                                                     |
-|:-------------------------------------|:----------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------|
-| One holder per seat under contention | One conditional SQL UPDATE decides. Redis only rejects losers early. ([ADR-001](docs/adr/ADR-001-seat-hold.md)) | 100 concurrent holds, 1 success, with and without Redis                  |
-| One order per `Idempotency-Key`      | Unique key on the order                                                                                         | Same key twice, 1 order                                                  |
-| One charge per payment request       | Unique `payment_request_id`, stored result                                                                      | Lost response, 1 charge ([ADR-004](docs/adr/ADR-004-payment-timeout.md)) |
-| No lost or duplicate side effects    | Transactional outbox, inbox table ([ADR-003](docs/adr/ADR-003-outbox-and-inbox.md))                             | Same message twice, 1 effect                                             |
-| Every failure ends in a clean state  | Orchestrated saga with compensation ([ADR-002](docs/adr/ADR-002-orchestrated-saga.md))                          | Happy path and 4 compensation paths                                      |
+- **One holder per seat under contention.** One conditional SQL UPDATE decides. Redis only rejects losers early ([ADR-001](docs/adr/ADR-001-seat-hold.md)). Test: 100 concurrent holds, 1 success, with and without Redis.
+- **One order per `Idempotency-Key`.** A unique key on the order. Test: the same key twice gives 1 order.
+- **One charge per payment request.** A unique `payment_request_id` and a stored result ([ADR-004](docs/adr/ADR-004-payment-timeout.md)). Test: a lost response gives 1 charge.
+- **No lost or duplicate side effects.** Transactional outbox and an inbox table ([ADR-003](docs/adr/ADR-003-outbox-and-inbox.md)). Test: the same message twice gives 1 effect.
+- **Every failure ends in a clean state.** Orchestrated saga with compensation ([ADR-002](docs/adr/ADR-002-orchestrated-saga.md)). Test: the happy path and 4 compensation paths.
 
 Full test list: [ENGINEERING_STANDARDS.md](docs/ENGINEERING_STANDARDS.md).
 
@@ -26,31 +24,20 @@ Full test list: [ENGINEERING_STANDARDS.md](docs/ENGINEERING_STANDARDS.md).
 
 ## Architecture (Planned)
 
-```text
-                     client
-                       │
-                       ▼ :8080
-          ┌─────────────────────────┐
-          │       api-gateway       │  routing, rate limit, correlation id
-          └────────────┬────────────┘
-                       ▼ :8081
-          ┌─────────────────────────┐
-          │      order-service      │  order API, saga orchestrator
-          │  PostgreSQL (order_db)  │
-          └───────┬─────────▲───────┘
-        commands  │         │  events
-                  ▼         │
-        ┌─────────────────────────────┐
-        │   Kafka (single broker)     │
-        └───────┬─────────────▲───────┘
-                ▼             │
-      ┌───────────────────────┴──────────────────┐
-      │                                          │
-┌─────┴───────────────┐              ┌───────────┴─────────┐
-│  inventory-service  │              │   payment-service   │
-│  :8082              │              │   :8083             │
-│  PostgreSQL, Redis  │              │   PostgreSQL        │
-└─────────────────────┘              └─────────────────────┘
+```mermaid
+flowchart TD
+    client([client])
+    gateway["api-gateway :8080<br/>routing, rate limit,<br/>correlation id"]
+    order["order-service :8081<br/>order API, saga orchestrator<br/>PostgreSQL order_db"]
+    kafka[("Kafka<br/>single broker")]
+    inventory["inventory-service :8082<br/>PostgreSQL, Redis"]
+    payment["payment-service :8083<br/>PostgreSQL"]
+
+    client --> gateway
+    gateway --> order
+    order <-->|commands and events| kafka
+    kafka <--> inventory
+    kafka <--> payment
 ```
 
 Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -115,7 +102,7 @@ None yet. This table is filled from `v0.2.0`.
 - No authentication. The customer id is a request header.
 - `payment-service` is a simulator. There is no real payment provider and no reconciliation job.
 - One Kafka broker, one Redis, one PostgreSQL container with three databases. No failover.
-- Hold time is fixed at 10 minutes.
+- The hold time is one value for all seats (default 10 minutes).
 - No frontend and no notification service in `v1.0.0` ([ADR-005](docs/adr/ADR-005-scope-and-platform.md)).
 - Local only. No cloud deployment.
 
@@ -123,7 +110,11 @@ None yet. This table is filled from `v0.2.0`.
 
 ## Local setup
 
-Requirements: Java 21, Maven 3.9 and Docker. The tests start PostgreSQL, Redis and Kafka with Testcontainers, so Docker must be running when you run `mvn clean verify`.
+### Requirements
+
+Java 21, Maven 3.9 and Docker. The tests start PostgreSQL, Redis and Kafka with Testcontainers, so Docker must be running when you run `mvn clean verify`.
+
+### Build and start the infrastructure
 
 ```bash
 git clone https://github.com/BatuhanBaysal/ticket-reservation-engine.git
@@ -132,24 +123,42 @@ cp .env.example .env
 
 mvn clean verify
 
-docker compose --env-file .env -f infra/docker-compose.yml up -d
-docker compose --env-file .env -f infra/docker-compose.yml ps
+docker compose --env-file .env \
+  -f infra/docker-compose.yml up -d
+docker compose --env-file .env \
+  -f infra/docker-compose.yml ps
 ```
+
+PostgreSQL listens on `POSTGRES_PORT`, Kafka on `9092`, Redis on `REDIS_PORT`. If a port is already in use, change it in `.env`.
+
+### Run the services
 
 Start each service in its own terminal with the `local` profile, which reads `.env`:
 
 ```bash
 mvn -DskipTests install
-mvn -pl order-service spring-boot:run -Dspring-boot.run.profiles=local
-mvn -pl inventory-service spring-boot:run -Dspring-boot.run.profiles=local
-mvn -pl payment-service spring-boot:run -Dspring-boot.run.profiles=local
+mvn -pl order-service spring-boot:run \
+  -Dspring-boot.run.profiles=local
+mvn -pl inventory-service spring-boot:run \
+  -Dspring-boot.run.profiles=local
+mvn -pl payment-service spring-boot:run \
+  -Dspring-boot.run.profiles=local
 ```
 
-Health endpoints: `http://localhost:8081/actuator/health` (order-service), `:8082` (inventory-service), `:8083` (payment-service).
+Health endpoints:
 
-PostgreSQL listens on `POSTGRES_PORT`, Kafka on `9092`, Redis on `REDIS_PORT`. If a port is already in use, change it in `.env`.
+- order-service: `http://localhost:8081/actuator/health`
+- inventory-service: `http://localhost:8082/actuator/health`
+- payment-service: `http://localhost:8083/actuator/health`
 
-Stop the containers with `docker compose --env-file .env -f infra/docker-compose.yml down`. Add `-v` to delete the PostgreSQL data. The init script that creates the three databases runs only on the first start with an empty volume.
+### Stop
+
+```bash
+docker compose --env-file .env \
+  -f infra/docker-compose.yml down
+```
+
+Add `-v` to delete the PostgreSQL data. The init script that creates the three databases runs only on the first start with an empty volume.
 
 ---
 
