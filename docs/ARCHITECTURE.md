@@ -1,6 +1,6 @@
 # Architecture
 
-Status: design. The `common-events` module (envelope, topic and type names, inventory and payment messages, JSON codec with contract tests) and skeletons of `inventory-service`, `order-service` and `payment-service` exist, and `inventory-service` has the seat table. Everything else below is **Planned**, except where a decision record is linked.
+Status: the message contracts, the seat table and the seat rules describe code that exists. Everything else is **Planned**, except where a decision record is linked.
 
 ## Services
 
@@ -142,7 +142,11 @@ Every message type has a sample message in the tests of `common-events` and a st
 
 ## Data model
 
-Money columns use `NUMERIC(19, 4)` and `BigDecimal` in code.
+Money columns use `NUMERIC(19, 4)` and `BigDecimal` in code. Timestamps are `timestamptz`.
+
+### Overview
+
+Only `SEAT_INVENTORY` exists today. The other tables are **Planned**.
 
 ```mermaid
 erDiagram
@@ -155,7 +159,7 @@ erDiagram
         numeric amount
         text status
         text cancel_reason
-        timestamp payment_deadline
+        timestamptz payment_deadline
         int payment_attempts
         bigint version
     }
@@ -181,18 +185,21 @@ erDiagram
         text topic
         text message_key
         jsonb payload
-        timestamp published_at
+        timestamptz published_at
     }
     PROCESSED_MESSAGE {
         uuid message_id PK
         text consumer
-        timestamp processed_at
+        timestamptz processed_at
     }
 ```
 
-`SEAT_INVENTORY` has `UNIQUE (event_id, seat_id)`. `OUTBOX_EVENT` and `PROCESSED_MESSAGE` exist in each of the three databases. The three databases are separate. The diagram shows them together for reading only.
+`OUTBOX_EVENT` and `PROCESSED_MESSAGE` exist in each of the three databases. The three databases are separate. The diagram shows them together for reading only.
 
-Index notes (the "why" is recorded next to each Liquibase changeset):
+### Indexes
+
+The reason for each index is recorded next to its Liquibase changeset.
+
 - `seat_inventory (hold_expires_at) WHERE status = 'HELD'`: the expiry job reads only held rows.
 - `orders (payment_deadline) WHERE status = 'AWAITING_PAYMENT'`: the retry job reads only these rows.
 - `outbox_event (created_at) WHERE published_at IS NULL`: the poller reads only unpublished rows.
@@ -201,16 +208,16 @@ Index notes (the "why" is recorded next to each Liquibase changeset):
 
 `seat_inventory` in `inventory_db` ([ADR-001](adr/ADR-001-seat-hold.md)), created by the Liquibase changeset `001-seat-inventory`.
 
-| Column             | Type            | Rule                                          |
-|:-------------------|:----------------|:----------------------------------------------|
-| `id`               | `uuid`          | primary key                                   |
-| `event_id`         | `varchar(64)`   | not null, `UNIQUE (event_id, seat_id)`        |
-| `seat_id`          | `varchar(64)`   | not null                                      |
-| `status`           | `varchar(16)`   | `AVAILABLE`, `HELD` or `SOLD`                 |
-| `held_by_order_id` | `uuid`          | see below                                     |
-| `hold_expires_at`  | `timestamptz`   | see below                                     |
-| `price`            | `numeric(19,4)` | greater than zero                             |
-| `version`          | `bigint`        | optimistic lock, starts at 0                  |
+| Column             | Type            | Rule                                   |
+|:-------------------|:----------------|:---------------------------------------|
+| `id`               | `uuid`          | primary key                            |
+| `event_id`         | `varchar(64)`   | not null, `UNIQUE (event_id, seat_id)` |
+| `seat_id`          | `varchar(64)`   | not null                               |
+| `status`           | `varchar(16)`   | `AVAILABLE`, `HELD` or `SOLD`          |
+| `held_by_order_id` | `uuid`          | see below                              |
+| `hold_expires_at`  | `timestamptz`   | see below                              |
+| `price`            | `numeric(19,4)` | greater than zero                      |
+| `version`          | `bigint`        | optimistic lock, starts at 0           |
 
 The status decides which of the two nullable columns are filled. One check constraint enforces it, so the database cannot hold an invalid state. A status that is not one of the three matches none of the rows below and is rejected too.
 
@@ -220,7 +227,24 @@ The status decides which of the two nullable columns are filled. One check const
 | `HELD`      | set                | set               |
 | `SOLD`      | set                | null              |
 
-Timestamps are `timestamptz`: the database stores UTC instants, and its clock (`now()`) decides every hold and every expiry. The partial index `idx_seat_inventory_held_expiry` is described in the index notes above.
+The database clock (`now()`) decides every hold and every expiry. The partial index `idx_seat_inventory_held_expiry` is described under Indexes.
+
+## Seat rules
+
+### Hold
+
+`SeatService.hold` in `inventory-service` returns `Held` (price and expiry) or `Rejected` with the reason `SEAT_UNAVAILABLE` or `SEAT_NOT_FOUND` ([ADR-001](adr/ADR-001-seat-hold.md)). One conditional update in PostgreSQL decides. It uses the database clock, and the hold lasts `inventory.hold.duration` (default 10 minutes).
+
+| Seat when the order asks              | Result                                                     |
+|:--------------------------------------|:-----------------------------------------------------------|
+| `AVAILABLE`                           | `Held`. The seat becomes `HELD` for the order              |
+| `HELD`, hold expired                  | `Held`. The seat passes to the asking order                |
+| `HELD` by the same order, not expired | `Held` with the existing price and expiry. Nothing changes |
+| `HELD` by another order, not expired  | `Rejected(SEAT_UNAVAILABLE)`                               |
+| `SOLD`                                | `Rejected(SEAT_UNAVAILABLE)`                               |
+| not found                             | `Rejected(SEAT_NOT_FOUND)`                                 |
+
+A seat that becomes available between the update and the read is reported as `SEAT_UNAVAILABLE`. The order can ask again.
 
 ## Decision records
 
