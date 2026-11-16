@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SeatRepository extends JpaRepository<Seat, UUID> {
+public interface SeatRepository extends JpaRepository<Seat, UUID>, SeatHoldOperations {
 
     Optional<Seat> findByEventIdAndSeatId(String eventId, String seatId);
 }
