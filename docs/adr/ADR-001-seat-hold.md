@@ -4,7 +4,7 @@ Status: Accepted (2026-11-01)
 
 ## Context
 
-A seat has at most one holder. A hold lasts 10 minutes.
+A seat has at most one holder. A hold lasts 10 minutes by default.
 
 A distributed lock protects a short critical section. A 10-minute hold is a lease: it must survive restarts and be queryable. The first draft used both a Redis lock and a database status for the same fact. Two sources of truth can disagree.
 
@@ -23,30 +23,38 @@ Table `seat_inventory` in inventory-service:
 | `price`               | `NUMERIC(19, 4)`             |
 | `version`             | JPA `@Version`               |
 
-**Hold is one conditional UPDATE.** Rows affected = 1 means held. Rows affected = 0 means rejected.
+**Hold is one conditional UPDATE.** One row returned means held. No row means the order does not get the seat, except when it already holds it (below).
 
 ```sql
 UPDATE seat_inventory
 SET status = 'HELD', held_by_order_id = :orderId,
-    hold_expires_at = now() + interval '10 minutes'
+    hold_expires_at = now() + make_interval(secs => :holdSeconds),
+    version = version + 1
 WHERE event_id = :eventId AND seat_id = :seatId
-  AND (status = 'AVAILABLE' OR (status = 'HELD' AND hold_expires_at < now()));
+  AND (status = 'AVAILABLE' OR (status = 'HELD' AND hold_expires_at < now()))
+RETURNING price, hold_expires_at;
 ```
 
-**Redis is an admission gate.** Before the UPDATE, inventory-service runs `SET hold:{eventId}:{seatId} {orderId} NX PX 600000`.
+`holdSeconds` is the configured hold duration (default 10 minutes). Every raw update of this table also sets `version = version + 1`, so the version check of confirm and release sees it.
+
+**A hold is idempotent for the same order.** The update returns no row and the seat is `HELD` by the same order: the hold is still valid, because an expired hold would have matched the update. The service returns the existing price and expiry and changes nothing. Any other state is a rejection: `SEAT_UNAVAILABLE`, or `SEAT_NOT_FOUND` when the seat does not exist.
+
+**Redis is an admission gate.** Before the UPDATE, inventory-service runs `SET hold:{eventId}:{seatId} {orderId} NX PX <hold duration>`.
 - Key exists: reject without touching the database.
 - Key set, UPDATE affects 0 rows: delete the key (only if the value equals `orderId`) and reject.
 - Redis is down or empty: skip the gate. The UPDATE still allows one holder.
-- Release deletes the key (only if the value equals `orderId`). Expiry needs no delete, because the key has the same 10-minute TTL.
+- Release deletes the key (only if the value equals `orderId`). Expiry needs no delete, because the key has the same TTL as the hold.
 
 **Confirm and release** load the row and use `@Version`. A concurrent confirm and expiry fails on version, and the loser retries or reports failure.
 
 **Expiry job** runs every 30 seconds:
 
 ```sql
-UPDATE seat_inventory SET status = 'AVAILABLE', held_by_order_id = NULL, hold_expires_at = NULL
+UPDATE seat_inventory
+SET status = 'AVAILABLE', held_by_order_id = NULL,
+    hold_expires_at = NULL, version = version + 1
 WHERE status = 'HELD' AND hold_expires_at < now()
-RETURNING event_id, seat_id, held_by_order_id;
+    RETURNING event_id, seat_id, held_by_order_id;
 ```
 
 Each returned row writes a `SeatHoldExpired` event to the outbox (ADR-003). Index: `(hold_expires_at) WHERE status = 'HELD'`, because the job reads only held rows.
@@ -55,7 +63,7 @@ Each returned row writes a `SeatHoldExpired` event to the outbox (ADR-003). Inde
 
 - Correctness does not depend on Redis. The concurrency test runs with the gate on and off. Both runs must produce 1 holder.
 - The gate has one purpose: reject losers without a database round trip. The benefit is measured in v0.6.0 and reported only if the numbers show it.
-- A key that survives a failed delete can reject a valid hold for up to 10 minutes. This trade-off is accepted. The database still never allows two holders.
+- A key that survives a failed delete can reject a valid hold for up to the hold duration. This trade-off is accepted. The database still never allows two holders.
 - Redisson is not used. Spring Data Redis is enough for `SET NX PX`.
 
 ## Rejected alternatives
