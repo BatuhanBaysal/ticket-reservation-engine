@@ -11,6 +11,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - One multi-stage Dockerfile per service.
 - Correlation id in every log line (`correlationId` from the message envelope or request header).
 - Money: `NUMERIC(19, 4)` in the database, `BigDecimal` in code.
+- An optional dependency such as Redis never fails a request. The failure is logged as a warning and the request continues without it.
 
 ## Database
 

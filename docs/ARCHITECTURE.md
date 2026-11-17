@@ -246,6 +246,22 @@ The database clock (`now()`) decides every hold and every expiry. The partial in
 
 A seat that becomes available between the update and the read is reported as `SEAT_UNAVAILABLE`. The order can ask again.
 
+### Redis gate
+
+Before the database update, `RedisHoldGate` tells the hold to proceed or to stop ([ADR-001](adr/ADR-001-seat-hold.md)). The gate only saves database calls. The database still decides.
+
+| Situation                           | Decision                                         |
+|:------------------------------------|:-------------------------------------------------|
+| no key for the seat                 | set the key, proceed                             |
+| key with the same order's id        | proceed                                          |
+| key with another order's id         | reject with `SEAT_UNAVAILABLE`, no database call |
+| Redis fails or times out            | skip the gate, log a warning, proceed            |
+| `inventory.hold.gate.enabled=false` | skip the gate, proceed                           |
+
+The key is `hold:{eventId}:{seatId}`. Its value is the order id and its TTL is the hold duration. When the database rejects a hold, the gate deletes the key only if its value is the order's own id.
+
+Redis commands time out after 500 ms. `SeatService.hold` keeps no database transaction open while it waits for Redis.
+
 ## Decision records
 
 | ADR                                       | Decision                                                           |
