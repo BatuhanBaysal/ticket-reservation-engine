@@ -103,6 +103,7 @@ None yet. This table is filled from `v0.2.0`.
 - `payment-service` is a simulator. There is no real payment provider and no reconciliation job.
 - One Kafka broker, one Redis, one PostgreSQL container with three databases. No failover.
 - The hold time is one value for all seats (default 10 minutes).
+- Redis is not needed for correctness. A stale Redis key can reject a valid hold until it expires, at most the hold duration ([ADR-001](docs/adr/ADR-001-seat-hold.md)).
 - No frontend and no notification service in `v1.0.0` ([ADR-005](docs/adr/ADR-005-scope-and-platform.md)).
 - Local only. No cloud deployment.
 
