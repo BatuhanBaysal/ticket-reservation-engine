@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -38,9 +39,13 @@ class SeatHoldTest {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private StringRedisTemplate redis;
+
     @BeforeEach
-    void emptyTheTable() {
+    void emptyTheTableAndTheGate() {
         jdbc.sql("DELETE FROM seat_inventory").update();
+        RedisFixtures.clearHoldKeys(redis);
     }
 
     @Test
