@@ -9,6 +9,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      timeout: 500ms
+      connect-timeout: 500ms
   jpa:
     open-in-view: false
     hibernate:
@@ -31,3 +33,5 @@ management:
 inventory:
   hold:
     duration: 10m
+    gate:
+      enabled: true
