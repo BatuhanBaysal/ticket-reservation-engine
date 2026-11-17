@@ -39,11 +39,13 @@ RETURNING price, hold_expires_at;
 
 **A hold is idempotent for the same order.** The update returns no row and the seat is `HELD` by the same order: the hold is still valid, because an expired hold would have matched the update. The service returns the existing price and expiry and changes nothing. Any other state is a rejection: `SEAT_UNAVAILABLE`, or `SEAT_NOT_FOUND` when the seat does not exist.
 
-**Redis is an admission gate.** Before the UPDATE, inventory-service runs `SET hold:{eventId}:{seatId} {orderId} NX PX <hold duration>`.
-- Key exists: reject without touching the database.
-- Key set, UPDATE affects 0 rows: delete the key (only if the value equals `orderId`) and reject.
-- Redis is down or empty: skip the gate. The UPDATE still allows one holder.
-- Release deletes the key (only if the value equals `orderId`). Expiry needs no delete, because the key has the same TTL as the hold.
+**Redis is an admission gate.** Before the UPDATE, inventory-service runs `SET hold:{eventId}:{seatId} {orderId} NX` with the hold duration as TTL.
+- The key exists with another order's id: reject without touching the database.
+- The key exists with the same order's id: continue, so a repeated hold stays idempotent.
+- The database rejects the hold: delete the key, only if the value equals `orderId`. One Lua script does the compare and the delete, so they are atomic.
+- Redis fails or times out, or the gate is turned off with `inventory.hold.gate.enabled=false`: skip the gate. The UPDATE still allows one holder.
+- Redis commands time out after 500 ms, so a down Redis adds a short delay to a hold and never stops it.
+- Release deletes the key the same way. Expiry needs no delete, because the key has the same TTL as the hold.
 
 **Confirm and release** load the row and use `@Version`. A concurrent confirm and expiry fails on version, and the loser retries or reports failure.
 
