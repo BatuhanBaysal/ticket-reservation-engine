@@ -262,6 +262,35 @@ The key is `hold:{eventId}:{seatId}`. Its value is the order id and its TTL is t
 
 Redis commands time out after 500 ms. `SeatService.hold` keeps no database transaction open while it waits for Redis.
 
+### Confirm
+
+`SeatService.confirm` returns `Confirmed` or `Failed` with the reason `HOLD_NOT_FOUND` or `SEAT_TAKEN` ([ADR-001](adr/ADR-001-seat-hold.md)).
+
+| Seat when the order confirms        | Result                                                      |
+|:------------------------------------|:------------------------------------------------------------|
+| `HELD` by the order, expired or not | `Confirmed`. The seat becomes `SOLD`, the expiry is cleared |
+| `SOLD` to the order                 | `Confirmed`. Nothing changes                                |
+| `HELD` or `SOLD` by another order   | `Failed(SEAT_TAKEN)`                                        |
+| `AVAILABLE`                         | `Failed(HOLD_NOT_FOUND)`                                    |
+| not found                           | `Failed(HOLD_NOT_FOUND)`                                    |
+
+A hold that has expired but was not released yet can still be confirmed. A paid order keeps its seat unless someone else took it (ADR-002, step 4a).
+
+### Release
+
+`SeatService.release` returns nothing.
+
+| Seat when the order releases | Result                                                     |
+|:-----------------------------|:-----------------------------------------------------------|
+| `HELD` by the order          | The seat becomes `AVAILABLE`. Order and expiry are cleared |
+| any other state or not found | Nothing changes                                            |
+
+After the database step, the gate deletes the Redis key of the order, only when its value is the order's own id.
+
+### Concurrent changes
+
+Confirm and release load the seat and save it with the version check. When another change got there first, for example a new hold or the expiry job, the save fails. The operation starts again in a new transaction and sees the new state, so the rules above apply to it. After 3 attempts it throws `SeatConflictException` and the seat is unchanged.
+
 ## Decision records
 
 | ADR                                       | Decision                                                           |
