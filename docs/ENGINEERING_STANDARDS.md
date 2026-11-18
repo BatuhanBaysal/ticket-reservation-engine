@@ -19,7 +19,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - Constraints: unique, foreign key and check constraints where the rule is a data rule.
 - Each index has a one-line reason next to its changeset (the `comment` of the changeset).
 - Timestamps: `timestamptz` in the database, `Instant` in code.
-- A raw SQL update of a table with a JPA `@Version` column also sets `version = version + 1`.
+- An operation that can lose an optimistic lock runs in a new transaction on each attempt, with at most 3 attempts.
 - ER diagram: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Messaging

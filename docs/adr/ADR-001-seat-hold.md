@@ -47,7 +47,9 @@ RETURNING price, hold_expires_at;
 - Redis commands time out after 500 ms, so a down Redis adds a short delay to a hold and never stops it.
 - Release deletes the key the same way. Expiry needs no delete, because the key has the same TTL as the hold.
 
-**Confirm and release** load the row and use `@Version`. A concurrent confirm and expiry fails on version, and the loser retries or reports failure.
+**Confirm and release** load the row and use `@Version`. A concurrent change, such as the expiry job or a new hold, makes the save fail on the version. The operation then starts again in a new transaction and sees the new state. After 3 attempts it gives up with `SeatConflictException` and the seat is unchanged.
+
+A seat that is `HELD` by the order can be confirmed after its hold has expired, as long as no other order holds it. A paid order keeps its seat unless someone else took it.
 
 **Expiry job** runs every 30 seconds:
 
