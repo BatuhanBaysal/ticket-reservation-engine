@@ -60,6 +60,23 @@ public class Seat {
         this.price = Require.positive(newPrice, "price");
     }
 
+    public void confirm() {
+        if (status != SeatStatus.HELD) {
+            throw new IllegalStateException("Only a held seat can be sold");
+        }
+        this.status = SeatStatus.SOLD;
+        this.holdExpiresAt = null;
+    }
+
+    public void release() {
+        if (status != SeatStatus.HELD) {
+            throw new IllegalStateException("Only a held seat can be released");
+        }
+        this.status = SeatStatus.AVAILABLE;
+        this.heldByOrderId = null;
+        this.holdExpiresAt = null;
+    }
+
     public UUID getId() {
         return id;
     }
