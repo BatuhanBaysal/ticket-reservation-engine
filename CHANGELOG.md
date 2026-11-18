@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seat table `seat_inventory` in `inventory-service` with a constraint for every seat state and the expiry index, and the `Seat` entity with a version for optimistic locking
 - Seat hold in `inventory-service`: one conditional update decides the holder, the hold duration is configurable, and a repeated hold of the same order returns the existing hold
 - Redis admission gate for seat holds in `inventory-service`: a second order is rejected without a database call, the gate can be turned off, and it is skipped when Redis fails or times out
+- Seat confirm and release in `inventory-service`: both are safe to repeat, a late confirm succeeds when nobody else holds the seat, and a version conflict is retried up to 3 times before `SeatConflictException`
 
 ---
 
