@@ -35,3 +35,6 @@ inventory:
     duration: 10m
     gate:
       enabled: true
+    expiry:
+      enabled: true
+      interval: 30s
