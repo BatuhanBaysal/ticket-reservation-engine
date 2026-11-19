@@ -7,3 +7,8 @@ logging:
   level:
     root: WARN
     com.ticket: INFO
+
+inventory:
+  hold:
+    expiry:
+      enabled: false
