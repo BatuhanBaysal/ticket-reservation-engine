@@ -291,6 +291,20 @@ After the database step, the gate deletes the Redis key of the order, only when 
 
 Confirm and release load the seat and save it with the version check. When another change got there first, for example a new hold or the expiry job, the save fails. The operation starts again in a new transaction and sees the new state, so the rules above apply to it. After 3 attempts it throws `SeatConflictException` and the seat is unchanged.
 
+### Expiry
+
+`SeatService.expireOverdueHolds` returns the holds it expired: order id, event id and seat id ([ADR-001](adr/ADR-001-seat-hold.md)). `HoldExpiryJob` runs it every `inventory.hold.expiry.interval` (default 30 s) and logs how many holds expired. `inventory.hold.expiry.enabled=false` turns the job off.
+
+| Seat when the job runs | Result                                                     |
+|:-----------------------|:-----------------------------------------------------------|
+| `HELD`, hold expired   | `AVAILABLE`. Order and expiry are cleared, version + 1     |
+| `HELD`, not expired    | Unchanged                                                  |
+| `SOLD` or `AVAILABLE`  | Unchanged                                                  |
+
+One statement does the work and uses the index of held seats. Two runs at the same time never expire the same hold twice. A seat with an expired hold can already be held by another order before the job runs. The Redis key needs no delete: it expires with the hold.
+
+**Planned:** the `SeatHoldExpired` events are written to the outbox with the outbox itself, in `v0.3.0`.
+
 ## Decision records
 
 | ADR                                       | Decision                                                           |

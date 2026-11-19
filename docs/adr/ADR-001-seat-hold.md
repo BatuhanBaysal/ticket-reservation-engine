@@ -54,12 +54,23 @@ A seat that is `HELD` by the order can be confirmed after its hold has expired, 
 **Expiry job** runs every 30 seconds:
 
 ```sql
-UPDATE seat_inventory
+WITH overdue AS (
+    SELECT id, held_by_order_id
+    FROM seat_inventory
+    WHERE status = 'HELD' AND hold_expires_at < now()
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE seat_inventory AS seat
 SET status = 'AVAILABLE', held_by_order_id = NULL,
-    hold_expires_at = NULL, version = version + 1
-WHERE status = 'HELD' AND hold_expires_at < now()
-    RETURNING event_id, seat_id, held_by_order_id;
+    hold_expires_at = NULL, version = seat.version + 1
+FROM overdue
+WHERE seat.id = overdue.id
+RETURNING seat.event_id, seat.seat_id, overdue.held_by_order_id;
 ```
+
+The `RETURNING` of a plain update returns the new row, where the order id is already null. The order id is read first, in `overdue`. `SKIP LOCKED` lets two runs work at the same time: a hold that one run has locked is skipped by the other, so no hold expires twice.
+
+An expired hold does not block the seat. The hold update takes a seat whose hold has expired. The job makes the state consistent and reports the expiry.
 
 Each returned row writes a `SeatHoldExpired` event to the outbox (ADR-003). Index: `(hold_expires_at) WHERE status = 'HELD'`, because the job reads only held rows.
 
