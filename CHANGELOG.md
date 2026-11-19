@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seat hold in `inventory-service`: one conditional update decides the holder, the hold duration is configurable, and a repeated hold of the same order returns the existing hold
 - Redis admission gate for seat holds in `inventory-service`: a second order is rejected without a database call, the gate can be turned off, and it is skipped when Redis fails or times out
 - Seat confirm and release in `inventory-service`: both are safe to repeat, a late confirm succeeds when nobody else holds the seat, and a version conflict is retried up to 3 times before `SeatConflictException`
+- Hold expiry job in `inventory-service`: one statement makes overdue holds available and returns them, two runs at the same time expire each hold once, and the job can be turned off
 
 ---
 
