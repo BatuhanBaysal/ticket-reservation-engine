@@ -5,13 +5,16 @@ import com.ticket.events.inventory.SeatConfirmFailed;
 import com.ticket.events.inventory.SeatHoldRejected;
 import com.ticket.inventory.domain.Seat;
 import com.ticket.inventory.domain.SeatStatus;
+import com.ticket.inventory.repository.ExpiredHold;
 import com.ticket.inventory.repository.HeldSeat;
 import com.ticket.inventory.repository.SeatRepository;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
@@ -56,6 +59,11 @@ public class SeatService {
         requireRequest(orderId, eventId, seatId);
         retryingOnConflict(() -> releaseOnce(orderId, eventId, seatId));
         gate.release(orderId, eventId, seatId);
+    }
+
+    @Transactional
+    public List<ExpiredHold> expireOverdueHolds() {
+        return seats.expireOverdueHolds();
     }
 
     private HoldResult holdInDatabase(UUID orderId, String eventId, String seatId) {
