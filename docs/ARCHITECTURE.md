@@ -305,6 +305,17 @@ One statement does the work and uses the index of held seats. Two runs at the sa
 
 **Planned:** the `SeatHoldExpired` events are written to the outbox with the outbox itself, in `v0.3.0`.
 
+### Confirm and expiry at the same time
+
+A confirm and the expiry job can reach the same seat at the same moment. Exactly one of them wins:
+
+| Winner  | Seat afterwards   | Confirm returns          |
+|:--------|:------------------|:-------------------------|
+| confirm | `SOLD`, no expiry | `Confirmed`              |
+| the job | `AVAILABLE`       | `Failed(HOLD_NOT_FOUND)` |
+
+When the job commits between the load and the save of the confirm, the save fails on the version. The confirm starts again, sees `AVAILABLE` and returns `Failed(HOLD_NOT_FOUND)`. A seat is never `SOLD` with an expiry: the check constraint of the seat table rejects it.
+
 ## Decision records
 
 | ADR                                       | Decision                                                           |
