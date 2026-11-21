@@ -50,6 +50,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - Unit tests follow Arrange-Act-Assert. Phases are separated by a blank line, without phase comments. One behavior per test.
 - Integration tests use Testcontainers: real PostgreSQL, Redis and Kafka.
 - A concurrency test starts all threads on a latch, so they begin together. It repeats for 20 rounds, each on a new seat, and checks the database state as well as the results.
+- A retry path is not left to timing. A test runs the competing action between the load and the save, so the conflict always happens.
 - A test that proves a gate or a cache counts the calls that reach the database.
 - JaCoCo reports coverage. There is no percentage gate. The tests above are the quality bar.
 
