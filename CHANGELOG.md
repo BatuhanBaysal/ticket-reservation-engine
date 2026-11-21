@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seat confirm and release in `inventory-service`: both are safe to repeat, a late confirm succeeds when nobody else holds the seat, and a version conflict is retried up to 3 times before `SeatConflictException`
 - Hold expiry job in `inventory-service`: one statement makes overdue holds available and returns them, two runs at the same time expire each hold once, and the job can be turned off
 - Concurrency tests of the seat hold: 100 orders hold one seat at the same time, with the Redis gate on and off. Both give one holder. With the gate on one request reaches the database, with the gate off all 100 do
+- Race test of seat confirm and the expiry job: 200 rounds with both started together, exactly one wins and no seat is sold with an expiry. A deterministic test makes the version conflict happen and checks the retry
 
 ---
 
