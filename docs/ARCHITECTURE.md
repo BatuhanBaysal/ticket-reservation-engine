@@ -7,7 +7,7 @@ Status: the message contracts, the seat table and the seat rules describe code t
 | Module              | Responsibility                                                                   | Data                             |
 |:--------------------|:---------------------------------------------------------------------------------|:---------------------------------|
 | `common-events`     | Message envelope, event and command records (Java `record`) and the JSON codec.  | none                             |
-| `inventory-service` | Seat state, holds, expiry. [ADR-001](adr/ADR-001-seat-hold.md)                   | PostgreSQL `inventory_db`, Redis |
+| `inventory-service` | Seat state, holds, confirm, release, expiry. [ADR-001](adr/ADR-001-seat-hold.md) | PostgreSQL `inventory_db`, Redis |
 | `order-service`     | Order API, saga orchestration. [ADR-002](adr/ADR-002-orchestrated-saga.md)       | PostgreSQL `order_db`            |
 | `payment-service`   | Simulated payments, idempotent by key. [ADR-004](adr/ADR-004-payment-timeout.md) | PostgreSQL `payment_db`          |
 | `api-gateway`       | Routing, rate limit, correlation id, internal secret.                            | Redis                            |
@@ -286,6 +286,12 @@ A hold that has expired but was not released yet can still be confirmed. A paid 
 | any other state or not found | Nothing changes                                            |
 
 After the database step, the gate deletes the Redis key of the order, only when its value is the order's own id.
+
+### Repeated requests
+
+Hold, confirm and release are safe to repeat. A second request of the same order returns the same result and changes nothing, also when both requests arrive at the same moment. The seat version goes up once per change, not once per request.
+
+**Planned:** the inbox that drops a repeated message before it reaches these operations comes with the Kafka command handling in `v0.3.0` ([ADR-003](adr/ADR-003-outbox-and-inbox.md)).
 
 ### Concurrent changes
 
