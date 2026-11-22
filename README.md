@@ -6,17 +6,17 @@ A backend for reserving event seats. The goal is that each seat is sold at most 
 
 Stack: Java 21, Spring Boot 4.1, Apache Kafka, PostgreSQL, Redis.
 
-> **Status:** `v0.2.0` in progress, `v0.1.0` released. What exists is listed in the [changelog](CHANGELOG.md). Everything below labeled **Planned** is not built.
+> **Status:** `v0.2.0` released. What exists is listed in the [changelog](CHANGELOG.md). Everything below labeled **Planned** is not built.
 
 ---
 
-## What this project proves (Planned)
+## What this project proves
 
-- **One holder per seat under contention.** One conditional SQL UPDATE decides. Redis only rejects losers early ([ADR-001](docs/adr/ADR-001-seat-hold.md)). Test: 100 concurrent holds, 1 success, with and without Redis.
-- **One order per `Idempotency-Key`.** A unique key on the order. Test: the same key twice gives 1 order.
-- **One charge per payment request.** A unique `payment_request_id` and a stored result ([ADR-004](docs/adr/ADR-004-payment-timeout.md)). Test: a lost response gives 1 charge.
-- **No lost or duplicate side effects.** Transactional outbox and an inbox table ([ADR-003](docs/adr/ADR-003-outbox-and-inbox.md)). Test: the same message twice gives 1 effect.
-- **Every failure ends in a clean state.** Orchestrated saga with compensation ([ADR-002](docs/adr/ADR-002-orchestrated-saga.md)). Test: the happy path and 4 compensation paths.
+- **One holder per seat under contention.** One conditional SQL UPDATE decides. Redis only rejects losers early ([ADR-001](docs/adr/ADR-001-seat-hold.md)). Test: 100 concurrent holds give 1 holder, with and without Redis. Numbers: [Measured results](#measured-results).
+- **One order per `Idempotency-Key`** (Planned). A unique key on the order. Test: the same key twice gives 1 order.
+- **One charge per payment request** (Planned). A unique `payment_request_id` and a stored result ([ADR-004](docs/adr/ADR-004-payment-timeout.md)). Test: a lost response gives 1 charge.
+- **No lost or duplicate side effects** (Planned). Transactional outbox and an inbox table ([ADR-003](docs/adr/ADR-003-outbox-and-inbox.md)). Test: the same message twice gives 1 effect.
+- **Every failure ends in a clean state** (Planned). Orchestrated saga with compensation ([ADR-002](docs/adr/ADR-002-orchestrated-saga.md)). Test: the happy path and 4 compensation paths.
 
 Full test list: [ENGINEERING_STANDARDS.md](docs/ENGINEERING_STANDARDS.md).
 
@@ -45,7 +45,7 @@ Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Module              | Responsibility                                                    |
 |:--------------------|:------------------------------------------------------------------|
 | `common-events`     | Message envelope, commands and events as Java records, JSON codec |
-| `inventory-service` | Seat state, holds, hold expiry                                    |
+| `inventory-service` | Seat state, holds, confirm, release, hold expiry                  |
 | `order-service`     | Order API, saga state machine, retries                            |
 | `payment-service`   | Simulated payments, idempotent by key                             |
 | `api-gateway`       | Routing, rate limit, correlation id, internal secret              |
@@ -58,7 +58,7 @@ Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 |:----------|:-------------------------------------------------------------------------------------------------|:------:|
 | `v0.0.1`  | Foundation: parent POM, docs, ADRs, CI, local infrastructure (Docker Compose), service skeletons |   ✅    |
 | `v0.1.0`  | Event and command contracts, serialization tests                                                 |   ✅    |
-| `v0.2.0`  | Seat hold, confirm, release, expiry. Concurrency tests                                           |   🚧   |
+| `v0.2.0`  | Seat hold, confirm, release, expiry. Concurrency tests                                           |   ✅    |
 | `v0.3.0`  | Order API, idempotency key, saga state machine, Kafka command handling, outbox, inbox            |   ⏳    |
 | `v0.4.0`  | Idempotent payment, simulator modes, compensation tests                                          |   ⏳    |
 | `v0.5.0`  | `api-gateway`: routing, rate limit, internal secret                                              |   ⏳    |
@@ -71,14 +71,15 @@ Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Measured results
 
-None yet. This table is filled from `v0.2.0`.
+Measured by the tests of `inventory-service` with `mvn clean verify`. Each concurrency test runs 20 rounds on new seats.
 
-| Measurement                                    | Result |
-|:-----------------------------------------------|:-------|
-| 100 concurrent holds, one seat, Redis gate on  | —      |
-| 100 concurrent holds, one seat, Redis gate off | —      |
-| Tests passing                                  | —      |
-| Hold latency p95, gate on vs off               | —      |
+| Measurement                                    | Result                                      |
+|:-----------------------------------------------|:--------------------------------------------|
+| 100 concurrent holds, one seat, Redis gate on  | 1 holder, 99 rejected, 1 database update    |
+| 100 concurrent holds, one seat, Redis gate off | 1 holder, 99 rejected, 100 database updates |
+| Confirm and expiry at the same moment          | 1 winner in each of 200 rounds              |
+| Tests passing                                  | 364                                         |
+| Hold latency p95, gate on vs off               | Planned for `v0.6.0`                        |
 
 ---
 
@@ -104,6 +105,7 @@ None yet. This table is filled from `v0.2.0`.
 - One Kafka broker, one Redis, one PostgreSQL container with three databases. No failover.
 - The hold time is one value for all seats (default 10 minutes).
 - Redis is not needed for correctness. A stale Redis key can reject a valid hold until it expires, at most the hold duration ([ADR-001](docs/adr/ADR-001-seat-hold.md)).
+- Seats are created with SQL or in tests. There is no API for it.
 - No frontend and no notification service in `v1.0.0` ([ADR-005](docs/adr/ADR-005-scope-and-platform.md)).
 - Local only. No cloud deployment.
 

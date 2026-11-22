@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased]
+
+---
+
+## [0.2.0] - 2026-11-22
 ### Added
 - Seat table `seat_inventory` in `inventory-service` with a constraint for every seat state and the expiry index, and the `Seat` entity with a version for optimistic locking
 - Seat hold in `inventory-service`: one conditional update decides the holder, the hold duration is configurable, and a repeated hold of the same order returns the existing hold
@@ -16,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hold expiry job in `inventory-service`: one statement makes overdue holds available and returns them, two runs at the same time expire each hold once, and the job can be turned off
 - Concurrency tests of the seat hold: 100 orders hold one seat at the same time, with the Redis gate on and off. Both give one holder. With the gate on one request reaches the database, with the gate off all 100 do
 - Race test of seat confirm and the expiry job: 200 rounds with both started together, exactly one wins and no seat is sold with an expiry. A deterministic test makes the version conflict happen and checks the retry
+- Repeated request tests: hold, confirm and release change the seat once, also when two requests arrive at the same moment
+- Measured results of the concurrency tests in the README
+
+### Changed
+- ADR-001 amended: idempotent hold, version rule for raw updates, gate details, retry limit, late confirm and the corrected expiry SQL
+- README and architecture document are easier to read on a phone: lists instead of wide tables, a Mermaid diagram and a heading for every part
+- Engineering standards: rules for optional dependencies, scheduled jobs, optimistic lock retries, concurrency tests, retry tests, repeat tests and documents on a phone
 
 ---
 
@@ -42,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `inventory-service` skeleton: Spring Boot application with PostgreSQL, Redis, a Liquibase baseline, a health endpoint, a Dockerfile and a Testcontainers smoke test
 - `order-service` and `payment-service` skeletons: Spring Boot applications with PostgreSQL, Kafka producer and consumer settings, a Liquibase baseline, a health endpoint, Dockerfiles and Testcontainers smoke tests
 
-[Unreleased]: https://github.com/BatuhanBaysal/ticket-reservation-engine/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/BatuhanBaysal/ticket-reservation-engine/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/BatuhanBaysal/ticket-reservation-engine/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/BatuhanBaysal/ticket-reservation-engine/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/BatuhanBaysal/ticket-reservation-engine/releases/tag/v0.0.1
