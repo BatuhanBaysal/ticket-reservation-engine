@@ -1,6 +1,6 @@
 # ADR-001: Seat holds — the database is the source of truth, Redis is an admission gate
 
-Status: Accepted (2026-11-01)
+Status: Accepted (2026-11-01). Amended in `v0.2.0`: idempotent hold, version rule, gate details, retry and the expiry SQL.
 
 ## Context
 
@@ -72,12 +72,12 @@ The `RETURNING` of a plain update returns the new row, where the order id is alr
 
 An expired hold does not block the seat. The hold update takes a seat whose hold has expired. The job makes the state consistent and reports the expiry.
 
-Each returned row writes a `SeatHoldExpired` event to the outbox (ADR-003). Index: `(hold_expires_at) WHERE status = 'HELD'`, because the job reads only held rows.
+In `v0.3.0` each returned row writes a `SeatHoldExpired` event to the outbox (ADR-003). Until then the job only returns the expired holds. Index: `(hold_expires_at) WHERE status = 'HELD'`, because the job reads only held rows.
 
 ## Consequences
 
 - Correctness does not depend on Redis. The concurrency test runs with the gate on and off. Both runs must produce 1 holder.
-- The gate has one purpose: reject losers without a database round trip. The benefit is measured in v0.6.0 and reported only if the numbers show it.
+- The gate has one purpose: reject losers without a database round trip. With 100 concurrent holds on one seat, one request reaches the database with the gate on and 100 with the gate off. The latency benefit is measured in v0.6.0 and reported only if the numbers show it.
 - A key that survives a failed delete can reject a valid hold for up to the hold duration. This trade-off is accepted. The database still never allows two holders.
 - Redisson is not used. Spring Data Redis is enough for `SET NX PX`.
 
