@@ -6,7 +6,7 @@ A backend for reserving event seats. The goal is that each seat is sold at most 
 
 Stack: Java 21, Spring Boot 4.1, Apache Kafka, PostgreSQL, Redis.
 
-> **Status:** `v0.2.0` released. What exists is listed in the [changelog](CHANGELOG.md). Everything below labeled **Planned** is not built.
+> **Status:** `v0.3.0` in progress, `v0.2.0` released. What exists is listed in the [changelog](CHANGELOG.md). Everything below labeled **Planned** is not built.
 
 ---
 
@@ -54,16 +54,16 @@ Details, state machines and data model: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Status
 
-| Milestone | Scope                                                                                            | Status |
-|:----------|:-------------------------------------------------------------------------------------------------|:------:|
-| `v0.0.1`  | Foundation: parent POM, docs, ADRs, CI, local infrastructure (Docker Compose), service skeletons |   ✅    |
-| `v0.1.0`  | Event and command contracts, serialization tests                                                 |   ✅    |
-| `v0.2.0`  | Seat hold, confirm, release, expiry. Concurrency tests                                           |   ✅    |
-| `v0.3.0`  | Order API, idempotency key, saga state machine, Kafka command handling, outbox, inbox            |   ⏳    |
-| `v0.4.0`  | Idempotent payment, simulator modes, compensation tests                                          |   ⏳    |
-| `v0.5.0`  | `api-gateway`: routing, rate limit, internal secret                                              |   ⏳    |
-| `v0.6.0`  | Micrometer metrics, load test, `docs/BENCHMARKS.md`                                              |   ⏳    |
-| `v1.0.0`  | ER diagram check, demo script, final Known limitations                                           |   ⏳    |
+| Milestone | Scope                                                                                                      | Status |
+|:----------|:-----------------------------------------------------------------------------------------------------------|:------:|
+| `v0.0.1`  | Foundation: parent POM, docs, ADRs, CI, local infrastructure (Docker Compose), service skeletons           |   ✅    |
+| `v0.1.0`  | Event and command contracts, serialization tests                                                           |   ✅    |
+| `v0.2.0`  | Seat hold, confirm, release, expiry. Concurrency tests                                                     |   ✅    |
+| `v0.3.0`  | Order API, idempotency key, saga (happy path and two cancellations), Kafka command handling, outbox, inbox |   🚧   |
+| `v0.4.0`  | Idempotent payment, simulator modes, remaining saga steps, compensation tests                              |   ⏳    |
+| `v0.5.0`  | `api-gateway`: routing, rate limit, internal secret                                                        |   ⏳    |
+| `v0.6.0`  | Micrometer metrics, load test, `docs/BENCHMARKS.md`                                                        |   ⏳    |
+| `v1.0.0`  | ER diagram check, demo script, final Known limitations                                                     |   ⏳    |
 
 ✅ done  🚧 in progress  ⏳ planned
 
@@ -100,7 +100,8 @@ Measured by the tests of `inventory-service` with `mvn clean verify`. Each concu
 
 ## Known limitations
 
-- No authentication. The customer id is a request header.
+- No authentication. The customer id is a request header and anyone with an order id can read the order ([ADR-007](docs/adr/ADR-007-order-api.md)).
+- Dead-letter topics have no reader and there is no replay. The inbox is not cleaned up ([ADR-008](docs/adr/ADR-008-messaging-infrastructure.md)).
 - `payment-service` is a simulator. There is no real payment provider and no reconciliation job.
 - One Kafka broker, one Redis, one PostgreSQL container with three databases. No failover.
 - The hold time is one value for all seats (default 10 minutes).
