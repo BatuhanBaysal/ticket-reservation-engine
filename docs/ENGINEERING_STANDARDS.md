@@ -4,10 +4,11 @@ Rules every module follows. A rule is **Planned** until the first module applies
 
 ## Backend
 
-- Packages: `controller`, `service`, `repository`, `domain`. No business logic in controllers.
-- Input validation with Bean Validation. One global exception handler that returns `ProblemDetail` (RFC 7807).
+- Packages: `controller`, `service`, `repository`, `domain` and `messaging` (Kafka consumers, outbox, inbox and topic settings). No business logic in controllers.
+- Input validation with Bean Validation. One global exception handler that returns `ProblemDetail` (RFC 9457).
+- REST rules of order-service: [ADR-007](adr/ADR-007-order-api.md).
 - Config profiles: `local`, `test`. Secrets come from environment variables.
-- Actuator health endpoints. OpenAPI through springdoc. springdoc 3.x targets Boot 4.0. Check Boot 4.1 support before the first REST endpoint (order-service, v0.3.0).
+- Actuator health endpoints. OpenAPI through springdoc 3.2.0, the version built on Boot 4.1 ([ADR-005](adr/ADR-005-scope-and-platform.md)). A newer springdoc line needs a newer Boot line.
 - One multi-stage Dockerfile per service.
 - Correlation id in every log line (`correlationId` from the message envelope or request header).
 - Money: `NUMERIC(19, 4)` in the database, `BigDecimal` in code.
@@ -27,10 +28,11 @@ Rules every module follows. A rule is **Planned** until the first module applies
 
 - Envelope, outbox, inbox: [ADR-003](adr/ADR-003-outbox-and-inbox.md).
 - Wire format and compatibility rules: [ADR-006](adr/ADR-006-message-wire-format.md).
+- Code, poller, consumers, topics and correlation id: [ADR-008](adr/ADR-008-messaging-infrastructure.md).
 - Services write and read messages with `MessageCodec` only. They do not configure their own JSON mapper for messages.
 - Every message type has a sample message and a stored JSON file in the tests of `common-events`. A change of the wire format changes the file in the same pull request.
 - Producer: `acks=all`, idempotence on. Consumer: manual commit after the database commit.
-- Retry 3 times, then `<topic>.dlt`.
+- Retry 3 times, then `<topic>.dlt`. Unknown and invalid messages go there without a retry.
 
 ## Required tests
 

@@ -1,6 +1,6 @@
 # ADR-005: Scope and platform baseline
 
-Status: Accepted (2026-11-01)
+Status: Accepted (2026-11-01). Amended in `v0.3.0`: the springdoc check and the Spring Boot 4.2 release.
 
 ## Context
 
@@ -16,7 +16,9 @@ The first draft listed 7 modules, a React dashboard, Grafana, JWT and PDF genera
 - Spring Boot 4.1.x. Boot 3.4 ended OSS support in December 2025. Boot 3.5, the last 3.x line, ended in June 2026. A new project starts on a supported line.
 - Spring Cloud 2025.1.x, used only by api-gateway. Release train 2025.1.2 is compatible with Boot 4.1.
 - Kafka client, Liquibase, Testcontainers, JUnit and JaCoCo versions come from the Boot BOM.
-- Check before adding a dependency: it must support Boot 4.1. springdoc 3.x targets Boot 4.0: check Boot 4.1 support before order-service gets its first endpoint (v0.3.0).
+- Check before adding a dependency: it must support Boot 4.1.
+- springdoc: version 3.2.0 is built on Spring Boot 4.1.2 (checked on 2026-11-23). order-service uses it from `v0.3.0`. Version 3.2.1 is built on Spring Boot 4.2 and swagger-core 3 (Jackson 3), so it is not used while the project is on Boot 4.1.
+- Spring Boot 4.2 is released. The project stays on 4.1.x: that line is supported and the milestones are built on it. An upgrade is decided after `v1.0.0`.
 
 ### v1.0.0 scope
 
