@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.ticket.inventory.domain.Seat;
 import com.ticket.inventory.domain.SeatStatus;
+import com.ticket.inventory.messaging.outbox.OutboxWriter;
 import com.ticket.inventory.repository.SeatRepository;
 import java.time.Duration;
 import java.util.Optional;
@@ -28,10 +29,11 @@ class SeatServiceConflictTest {
 
     private final SeatRepository repository = mock(SeatRepository.class);
     private final HoldGate gate = mock(HoldGate.class);
+    private final OutboxWriter outbox = mock(OutboxWriter.class);
     private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
     private final Seat seat = mock(Seat.class);
     private final SeatService service =
-        new SeatService(repository, new HoldProperties(Duration.ofMinutes(10)), gate, transactionManager);
+        new SeatService(repository, new HoldProperties(Duration.ofMinutes(10)), gate, outbox, transactionManager);
 
     @BeforeEach
     void holdTheSeatForTheOrder() {
