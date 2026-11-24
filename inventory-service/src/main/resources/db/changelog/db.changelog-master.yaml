@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/000-baseline.yaml
   - include:
       file: db/changelog/changes/001-seat-inventory.yaml
+  - include:
+      file: db/changelog/changes/002-outbox-event.yaml
