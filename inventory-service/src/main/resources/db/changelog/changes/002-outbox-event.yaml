@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-outbox-event
+      author: batuhan
+      changes:
+        - createTable:
+            tableName: outbox_event
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_outbox_event
+                    nullable: false
+              - column:
+                  name: topic
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: clock_timestamp()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published_at
+                  type: timestamp with time zone
+  - changeSet:
+      id: 002-outbox-event-unpublished-index
+      author: batuhan
+      comment: The poller reads only unpublished rows, so the index covers only those rows.
+      changes:
+        - sql:
+            sql: CREATE INDEX idx_outbox_event_unpublished ON outbox_event (created_at) WHERE published_at IS NULL
