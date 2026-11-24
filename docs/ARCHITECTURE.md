@@ -151,7 +151,7 @@ Money columns use `NUMERIC(19, 4)` and `BigDecimal` in code. Timestamps are `tim
 
 ### Overview
 
-Only `SEAT_INVENTORY` exists today. The other tables are **Planned**.
+`SEAT_INVENTORY` and `OUTBOX_EVENT` exist today, in `inventory_db`. The other tables are **Planned**.
 
 ```mermaid
 erDiagram
@@ -185,11 +185,12 @@ erDiagram
         numeric amount
         text status
     }
-    OUTBOX_EVENT {
+        OUTBOX_EVENT {
         uuid id PK
         text topic
         text message_key
         jsonb payload
+        timestamptz created_at
         timestamptz published_at
     }
     PROCESSED_MESSAGE {
@@ -233,6 +234,21 @@ The status decides which of the two nullable columns are filled. One check const
 | `SOLD`      | set                | null              |
 
 The database clock (`now()`) decides every hold and every expiry. The partial index `idx_seat_inventory_held_expiry` is described under Indexes.
+
+### Outbox table
+
+`outbox_event` in `inventory_db`, created by the changeset `002-outbox-event` ([ADR-003](adr/ADR-003-outbox-and-inbox.md)). The other services get the same table when they get an outbox.
+
+| Column         | Type           | Rule                           |
+|:---------------|:---------------|:-------------------------------|
+| `id`           | `uuid`         | primary key                    |
+| `topic`        | `varchar(128)` | not null                       |
+| `message_key`  | `varchar(128)` | not null, the order id         |
+| `payload`      | `jsonb`        | not null, the envelope as JSON |
+| `created_at`   | `timestamptz`  | not null, set by the database  |
+| `published_at` | `timestamptz`  | null until the message is sent |
+
+`OutboxWriter` writes a row. It needs a transaction and throws without one, so a row exists only when the state change commits. The partial index `idx_outbox_event_unpublished` is described under Indexes.
 
 ## Seat rules
 
@@ -314,7 +330,9 @@ Confirm and release load the seat and save it with the version check. When anoth
 
 One statement does the work and uses the index of held seats. Two runs at the same time never expire the same hold twice. A seat with an expired hold can already be held by another order before the job runs. The Redis key needs no delete: it expires with the hold.
 
-**Planned:** the `SeatHoldExpired` events are written to the outbox with the outbox itself, in `v0.3.0`.
+Each expired hold also writes a `SeatHoldExpired` event to the outbox, in the same transaction as the update ([ADR-003](adr/ADR-003-outbox-and-inbox.md)). The topic is `inventory.events`, the key is the order id and every event gets a new correlation id. When the transaction rolls back, the seat change and the rows roll back together.
+
+**Planned:** the poller that sends the rows to Kafka, in `v0.3.0`.
 
 ### Confirm and expiry at the same time
 
