@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `docs/adr/ADR-007-order-api.md`: the order API with the `Idempotency-Key`, the answers and the errors
 - `docs/adr/ADR-008-messaging-infrastructure.md`: the outbox, the inbox, the consumers, the topics and the correlation id
+- Outbox table `outbox_event` and `OutboxWriter` in `inventory-service`. The expiry job writes a `SeatHoldExpired` event for each expired hold in the same transaction
 
 ### Changed
 - ADR-005 and the engineering standards record the springdoc check: version 3.2.0 is built on Spring Boot 4.1. The project stays on Spring Boot 4.1.x
