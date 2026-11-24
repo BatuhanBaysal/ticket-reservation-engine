@@ -1,13 +1,18 @@
 package com.ticket.inventory.service;
 
 import com.ticket.events.Require;
+import com.ticket.events.inventory.SeatHoldExpired;
 import com.ticket.events.inventory.SeatConfirmFailed;
 import com.ticket.events.inventory.SeatHoldRejected;
+import com.ticket.events.MessageEnvelope;
+import com.ticket.events.MessageTypes;
+import com.ticket.events.Topics;
 import com.ticket.inventory.domain.Seat;
 import com.ticket.inventory.domain.SeatStatus;
 import com.ticket.inventory.repository.ExpiredHold;
 import com.ticket.inventory.repository.HeldSeat;
 import com.ticket.inventory.repository.SeatRepository;
+import com.ticket.inventory.messaging.outbox.OutboxWriter;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -25,16 +30,19 @@ public class SeatService {
     private final SeatRepository seats;
     private final HoldProperties holdProperties;
     private final HoldGate gate;
+    private final OutboxWriter outbox;
     private final TransactionTemplate transaction;
 
     public SeatService(
         SeatRepository seats,
         HoldProperties holdProperties,
         HoldGate gate,
+        OutboxWriter outbox,
         PlatformTransactionManager transactionManager) {
         this.seats = seats;
         this.holdProperties = holdProperties;
         this.gate = gate;
+        this.outbox = outbox;
         this.transaction = new TransactionTemplate(transactionManager);
     }
 
@@ -63,7 +71,16 @@ public class SeatService {
 
     @Transactional
     public List<ExpiredHold> expireOverdueHolds() {
-        return seats.expireOverdueHolds();
+        List<ExpiredHold> expired = seats.expireOverdueHolds();
+        expired.forEach(this::writeExpiredEvent);
+        return expired;
+    }
+
+    private void writeExpiredEvent(ExpiredHold hold) {
+        SeatHoldExpired payload = new SeatHoldExpired(hold.orderId(), hold.eventId(), hold.seatId());
+        MessageEnvelope<SeatHoldExpired> envelope =
+            MessageEnvelope.of(UUID.randomUUID().toString(), MessageTypes.SEAT_HOLD_EXPIRED, payload);
+        outbox.write(Topics.INVENTORY_EVENTS, hold.orderId().toString(), envelope);
     }
 
     private HoldResult holdInDatabase(UUID orderId, String eventId, String seatId) {
