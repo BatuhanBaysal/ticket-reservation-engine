@@ -104,6 +104,7 @@ Measured by the tests of `inventory-service` with `mvn clean verify`. Each concu
 - Dead-letter topics have no reader and there is no replay. The inbox is not cleaned up ([ADR-008](docs/adr/ADR-008-messaging-infrastructure.md)).
 - `payment-service` is a simulator. There is no real payment provider and no reconciliation job.
 - One Kafka broker, one Redis, one PostgreSQL container with three databases. No failover.
+- Each service runs as one instance. Two instances could send the rows of one order out of order ([ADR-008](docs/adr/ADR-008-messaging-infrastructure.md)).
 - The hold time is one value for all seats (default 10 minutes).
 - Redis is not needed for correctness. A stale Redis key can reject a valid hold until it expires, at most the hold duration ([ADR-001](docs/adr/ADR-001-seat-hold.md)).
 - Seats are created with SQL or in tests. There is no API for it.
