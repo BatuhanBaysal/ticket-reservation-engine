@@ -11,6 +11,21 @@ spring:
       port: ${REDIS_PORT:6379}
       timeout: 500ms
       connect-timeout: 500ms
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.block.ms: 5000
+        request.timeout.ms: 10000
+        delivery.timeout.ms: 15000
+  task:
+    scheduling:
+      pool:
+        size: 3
   jpa:
     open-in-view: false
     hibernate:
@@ -38,3 +53,12 @@ inventory:
     expiry:
       enabled: true
       interval: 30s
+  outbox:
+    poller:
+      enabled: true
+      interval: 500ms
+      send-timeout: 10s
+    cleanup:
+      enabled: true
+      interval: 1h
+      retention: 7d
