@@ -24,6 +24,7 @@ A fix in one copy is applied to the others in the same milestone. This decision 
 - When a send fails, the poller stops. It commits the marks of the rows that were acknowledged. The failed row and the rows after it stay unpublished, so the order of messages for one key is kept and few messages are sent twice.
 - A crash between the send and the commit can send a row twice. The inbox of the consumer drops the repeat (ADR-003).
 - A cleanup deletes published rows older than 7 days, once an hour.
+- The producer keeps a broker outage short: `max.block.ms` is 5 seconds, the request timeout 10 seconds and the delivery timeout 15 seconds.
 
 ### Inbox and handlers
 
@@ -71,6 +72,7 @@ The `test` profile turns off the listeners, the outbox jobs and the creation of 
 - A record in a dead-letter topic waits for a person. Nothing reads these topics and there is no replay. Listed in the Known limitations.
 - Rows of the inbox are not deleted in `v0.3.0`. **Planned:** delete rows older than the retention of the topics, because older messages cannot be delivered again.
 - A message waits up to about 500 ms in the outbox for each hop.
+- With more than one instance of a service, two pollers can send the rows of one key out of order. The project runs one instance of each service.
 - The same code exists once per service.
 
 ## Rejected alternatives

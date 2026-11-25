@@ -332,7 +332,7 @@ One statement does the work and uses the index of held seats. Two runs at the sa
 
 Each expired hold also writes a `SeatHoldExpired` event to the outbox, in the same transaction as the update ([ADR-003](adr/ADR-003-outbox-and-inbox.md)). The topic is `inventory.events`, the key is the order id and every event gets a new correlation id. When the transaction rolls back, the seat change and the rows roll back together.
 
-**Planned:** the poller that sends the rows to Kafka, in `v0.3.0`.
+The outbox poller sends the rows to Kafka (see Outbox flow).
 
 ### Confirm and expiry at the same time
 
@@ -344,6 +344,46 @@ A confirm and the expiry job can reach the same seat at the same moment. Exactly
 | the job | `AVAILABLE`       | `Failed(HOLD_NOT_FOUND)` |
 
 When the job commits between the load and the save of the confirm, the save fails on the version. The confirm starts again, sees `AVAILABLE` and returns `Failed(HOLD_NOT_FOUND)`. A seat is never `SOLD` with an expiry: the check constraint of the seat table rejects it.
+
+## Outbox flow
+
+A service writes a message as a row of `outbox_event`, in the transaction of the state change. A poller sends the rows to Kafka afterwards ([ADR-003](adr/ADR-003-outbox-and-inbox.md), [ADR-008](adr/ADR-008-messaging-infrastructure.md)). Today only inventory-service has this flow.
+
+```mermaid
+flowchart TD
+    change["State change and outbox row<br/>in one transaction"]
+    table[("outbox_event")]
+    poller["OutboxPoller"]
+    kafka[("Kafka topic")]
+
+    change --> table
+    table -->|"unpublished rows"| poller
+    poller -->|"send, wait for the ack"| kafka
+    poller -->|"mark as published"| table
+```
+
+The poller runs every 500 ms in one transaction:
+
+1. It selects up to 100 unpublished rows with `FOR UPDATE SKIP LOCKED`, ordered by `created_at`.
+2. It sends each row in that order and waits up to 10 seconds for the acknowledgement.
+3. It marks the acknowledged rows as published and commits.
+
+When a send fails, the poller stops. The rows that were acknowledged are marked as published. The failed row and the rows after it stay unpublished and the next run starts with them, so the order of the messages for one key is kept. A crash between a send and the commit can send a row twice. The inbox of the consumer drops the repeat.
+
+Two pollers at the same time never take the same row, because locked rows are skipped. The project runs one instance of each service, so the order per key holds.
+
+A cleanup deletes published rows older than 7 days, once an hour. It never deletes an unpublished row.
+
+| Setting                                | Default | Meaning                       |
+|:---------------------------------------|:--------|:------------------------------|
+| `inventory.outbox.poller.enabled`      | `true`  | Run the poller                |
+| `inventory.outbox.poller.interval`     | `500ms` | Wait between two runs         |
+| `inventory.outbox.poller.send-timeout` | `10s`   | Wait for one acknowledgement  |
+| `inventory.outbox.cleanup.enabled`     | `true`  | Run the cleanup               |
+| `inventory.outbox.cleanup.interval`    | `1h`    | Wait between two runs         |
+| `inventory.outbox.cleanup.retention`   | `7d`    | Age of the rows that go       |
+
+The producer uses `acks=all` and idempotence. A broker that is down delays a run by a few seconds and loses no row: `max.block.ms` is 5 s, the request timeout 10 s and the delivery timeout 15 s. The topic `inventory.events` has 3 partitions. The `test` profile turns off the jobs and the creation of topics.
 
 ## Decision records
 
