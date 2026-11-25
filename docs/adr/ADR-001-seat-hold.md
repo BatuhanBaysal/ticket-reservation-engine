@@ -72,7 +72,7 @@ The `RETURNING` of a plain update returns the new row, where the order id is alr
 
 An expired hold does not block the seat. The hold update takes a seat whose hold has expired. The job makes the state consistent and reports the expiry.
 
-Each returned row writes a `SeatHoldExpired` event to the outbox in the same transaction (ADR-003). **Planned:** the poller that sends the rows to Kafka comes later in `v0.3.0`. Index: `(hold_expires_at) WHERE status = 'HELD'`, because the job reads only held rows.
+Each returned row writes a `SeatHoldExpired` event to the outbox in the same transaction (ADR-003). The outbox poller sends the rows to Kafka (ADR-008). Index: `(hold_expires_at) WHERE status = 'HELD'`, because the job reads only held rows.
 
 ## Consequences
 
