@@ -32,8 +32,12 @@ class SeatServiceConflictTest {
     private final OutboxWriter outbox = mock(OutboxWriter.class);
     private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
     private final Seat seat = mock(Seat.class);
-    private final SeatService service =
-        new SeatService(repository, new HoldProperties(Duration.ofMinutes(10)), gate, outbox, transactionManager);
+    private final SeatService service = new SeatService(
+        new SeatSteps(repository, new HoldProperties(Duration.ofMinutes(10))),
+        new TransactionAttempts(transactionManager),
+        gate,
+        repository,
+        outbox);
 
     @BeforeEach
     void holdTheSeatForTheOrder() {
