@@ -22,6 +22,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - Each index has a one-line reason next to its changeset (the `comment` of the changeset).
 - Timestamps: `timestamptz` in the database, `Instant` in code.
 - An operation that can lose an optimistic lock runs in a new transaction on each attempt, with at most 3 attempts.
+- A step that changes data requires an open transaction and does not retry. The caller opens the transaction and the attempts wrap all of it. A message handler runs the inbox insert, the change and the outbox write in one transaction.
 - ER diagram: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Messaging
