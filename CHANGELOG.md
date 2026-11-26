@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Engineering standards: the package `messaging`, links to ADR-007 and ADR-008 and RFC 9457 for `ProblemDetail`
 - The architecture document marks the saga steps by milestone
 - Known limitations of the README: reading an order is not authorized, dead-letter topics have no reader and the inbox is not cleaned up
+- Seat hold, confirm and release are split into steps that run inside the transaction of a caller and a helper for the attempts. The behavior does not change
 
 ---
 
