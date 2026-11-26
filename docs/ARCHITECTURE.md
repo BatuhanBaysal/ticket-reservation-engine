@@ -318,6 +318,14 @@ Hold, confirm and release are safe to repeat. A second request of the same order
 
 Confirm and release load the seat and save it with the version check. When another change got there first, for example a new hold or the expiry job, the save fails. The operation starts again in a new transaction and sees the new state, so the rules above apply to it. After 3 attempts it throws `SeatConflictException` and the seat is unchanged.
 
+### Transactions
+
+`SeatSteps` holds the database part of hold, confirm and release. A step requires an open transaction and does not retry. `SeatService` opens a new transaction for each attempt with `TransactionAttempts` and tries at most 3 times on a version conflict.
+
+The Redis gate stays outside of the transaction. A hold asks the gate before the transaction. A release tells the gate after the commit.
+
+**Planned:** the message handler of `v0.3.0` uses the same steps inside its own transaction, together with the inbox row and the outbox row.
+
 ### Expiry
 
 `SeatService.expireOverdueHolds` returns the holds it expired: order id, event id and seat id ([ADR-001](adr/ADR-001-seat-hold.md)). `HoldExpiryJob` runs it every `inventory.hold.expiry.interval` (default 30 s) and logs how many holds expired. `inventory.hold.expiry.enabled=false` turns the job off.
