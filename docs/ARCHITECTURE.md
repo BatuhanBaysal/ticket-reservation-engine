@@ -151,7 +151,7 @@ Money columns use `NUMERIC(19, 4)` and `BigDecimal` in code. Timestamps are `tim
 
 ### Overview
 
-`SEAT_INVENTORY` and `OUTBOX_EVENT` exist today, in `inventory_db`. The other tables are **Planned**.
+`SEAT_INVENTORY`, `OUTBOX_EVENT` and `PROCESSED_MESSAGE` exist today, in `inventory_db`. The other tables are **Planned**.
 
 ```mermaid
 erDiagram
@@ -250,6 +250,18 @@ The database clock (`now()`) decides every hold and every expiry. The partial in
 
 `OutboxWriter` writes a row. It needs a transaction and throws without one, so a row exists only when the state change commits. The partial index `idx_outbox_event_unpublished` is described under Indexes.
 
+### Inbox table
+
+`processed_message` in `inventory_db`, created by the changeset `003-processed-message` ([ADR-003](adr/ADR-003-outbox-and-inbox.md)). The other services get the same table when they get an inbox.
+
+| Column         | Type           | Rule                          |
+|:---------------|:---------------|:------------------------------|
+| `message_id`   | `uuid`         | primary key                   |
+| `consumer`     | `varchar(128)` | not null, the consumer group  |
+| `processed_at` | `timestamptz`  | not null, set by the database |
+
+`InboxGuard` inserts the message id with `ON CONFLICT DO NOTHING`. One inserted row means the first delivery. It needs a transaction and throws without one, so the row exists only when the handler commits.
+
 ## Seat rules
 
 ### Hold
@@ -324,7 +336,7 @@ Confirm and release load the seat and save it with the version check. When anoth
 
 The Redis gate stays outside of the transaction. A hold asks the gate before the transaction. A release tells the gate after the commit.
 
-**Planned:** the message handler of `v0.3.0` uses the same steps inside its own transaction, together with the inbox row and the outbox row.
+`SeatCommandHandler` uses the same steps inside its own transaction, together with the inbox row and the outbox row (see Command handler).
 
 ### Expiry
 
@@ -392,6 +404,22 @@ A cleanup deletes published rows older than 7 days, once an hour. It never delet
 | `inventory.outbox.cleanup.retention`   | `7d`    | Age of the rows that go       |
 
 The producer uses `acks=all` and idempotence. A broker that is down delays a run by a few seconds and loses no row: `max.block.ms` is 5 s, the request timeout 10 s and the delivery timeout 15 s. The topic `inventory.events` has 3 partitions. The `test` profile turns off the jobs and the creation of topics.
+
+## Command handler
+
+`SeatCommandHandler.handle` turns an inventory command into a seat change and an event ([ADR-008](adr/ADR-008-messaging-infrastructure.md)). **Planned:** the Kafka listener that calls it, in `v0.3.0`.
+
+| Command              | Seat change | Event                                  |
+|:---------------------|:------------|:---------------------------------------|
+| `HoldSeatCommand`    | hold        | `SeatHeld` or `SeatHoldRejected`       |
+| `ConfirmSeatCommand` | confirm     | `SeatConfirmed` or `SeatConfirmFailed` |
+| `ReleaseSeatCommand` | release     | none                                   |
+
+Each attempt is one transaction: the inbox insert, the seat step and the outbox row. A message whose id is in the inbox is a repeat. A repeat writes nothing and changes no seat. A version conflict rolls back the whole attempt, the inbox row included, and the attempt starts again, at most 3 times.
+
+The events keep the correlation id of the command. Their key is the order id and their topic is `inventory.events`. A payload that inventory does not handle throws `UnsupportedMessageException` before any database work.
+
+For a hold, the handler asks the Redis gate before the transaction. When the gate rejects, the handler writes `SeatHoldRejected(SEAT_UNAVAILABLE)` and changes no seat. The handler releases the gate key of the order after the transaction when the hold was not granted, when the message was a repeat and when the handler fails. A release command releases the key after the commit.
 
 ## Decision records
 
