@@ -55,6 +55,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - A concurrency test starts all threads on a latch, so they begin together. It repeats for 20 rounds, each on a new seat, and checks the database state as well as the results.
 - A retry path is not left to timing. A test runs the competing action between the load and the save, so the conflict always happens.
 - A repeat test sends the same request twice, in sequence and at the same moment, and checks that the state and the version changed once.
+- A handler test sends the same message twice, with the same message id, in sequence and at the same moment. It checks one effect, one event and one inbox row.
 - A test that proves a gate or a cache counts the calls that reach the database.
 - A test of a broker outage pauses the Kafka container with Docker, so its port does not change. A test that needs Kafka has its own container and its own context.
 - JaCoCo reports coverage. There is no percentage gate. The tests above are the quality bar.
