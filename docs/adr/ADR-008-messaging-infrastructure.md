@@ -61,6 +61,8 @@ While a handler runs, the consumer puts the id in the logging context as `correl
 
 The gate of inventory-service stays outside the transaction of a handler. The handler asks it before the transaction and tells it the result after the commit (ADR-001).
 
+When the hold was not granted, when the message was a repeat or when the handler fails, the handler releases the gate key of its order. A repeat cannot leave a stale key. The gate deletes only the key of the same order, so this costs at most one database call.
+
 ### Test profile
 
 The `test` profile turns off the listeners, the outbox jobs and the creation of topics. A test that needs Kafka turns them on.
