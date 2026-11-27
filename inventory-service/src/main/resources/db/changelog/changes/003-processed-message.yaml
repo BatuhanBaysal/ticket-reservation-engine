@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-processed-message
+      author: batuhan
+      changes:
+        - createTable:
+            tableName: processed_message
+            columns:
+              - column:
+                  name: message_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_processed_message
+                    nullable: false
+              - column:
+                  name: consumer
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processed_at
+                  type: timestamp with time zone
+                  defaultValueComputed: clock_timestamp()
+                  constraints:
+                    nullable: false
