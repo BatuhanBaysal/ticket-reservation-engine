@@ -14,6 +14,20 @@ class KafkaTopicsConfiguration {
 
     @Bean
     NewTopic inventoryEventsTopic() {
-        return TopicBuilder.name(Topics.INVENTORY_EVENTS).partitions(PARTITIONS).replicas(REPLICAS).build();
+        return topic(Topics.INVENTORY_EVENTS);
+    }
+
+    @Bean
+    NewTopic inventoryCommandsTopic() {
+        return topic(Topics.INVENTORY_COMMANDS);
+    }
+
+    @Bean
+    NewTopic inventoryCommandsDeadLetterTopic() {
+        return topic(DeadLetterTopics.of(Topics.INVENTORY_COMMANDS));
+    }
+
+    private static NewTopic topic(String name) {
+        return TopicBuilder.name(name).partitions(PARTITIONS).replicas(REPLICAS).build();
     }
 }

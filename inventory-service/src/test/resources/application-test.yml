@@ -20,3 +20,5 @@ inventory:
       enabled: false
     cleanup:
       enabled: false
+  consumer:
+    enabled: false

@@ -22,6 +22,14 @@ spring:
         max.block.ms: 5000
         request.timeout.ms: 10000
         delivery.timeout.ms: 15000
+    consumer:
+      group-id: inventory-service
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual_immediate
   task:
     scheduling:
       pool:
@@ -45,6 +53,10 @@ management:
     health:
       show-details: never
 
+logging:
+  pattern:
+    level: "%5p [%X{correlationId:-}]"
+
 inventory:
   hold:
     duration: 10m
@@ -62,3 +74,6 @@ inventory:
       enabled: true
       interval: 1h
       retention: 7d
+  consumer:
+    enabled: true
+    retry-interval: 1s
