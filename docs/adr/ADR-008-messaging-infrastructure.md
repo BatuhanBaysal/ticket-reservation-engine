@@ -39,6 +39,8 @@ A fix in one copy is applied to the others in the same milestone. This decision 
 - The offset is committed by hand after the handler returns, so after the database commit.
 - A failing handler is tried again 3 times, one second apart. Then the record goes to `<topic>.dlt` on the same partition.
 - These records go to `<topic>.dlt` without a retry, because a retry cannot fix them: an unknown message type, an invalid message, a payload that the service does not handle and an unknown order id.
+- A record without a value is an invalid message. When a record goes to the dead-letter topic, its offset is committed at once, so a restart does not send it again.
+- A consumer group that is new reads a topic from the beginning.
 - Each listener has one thread until `v0.6.0` measures whether more threads help.
 
 ### Topics

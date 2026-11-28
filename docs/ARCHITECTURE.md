@@ -407,7 +407,7 @@ The producer uses `acks=all` and idempotence. A broker that is down delays a run
 
 ## Command handler
 
-`SeatCommandHandler.handle` turns an inventory command into a seat change and an event ([ADR-008](adr/ADR-008-messaging-infrastructure.md)). **Planned:** the Kafka listener that calls it, in `v0.3.0`.
+`SeatCommandHandler.handle` turns an inventory command into a seat change and an event ([ADR-008](adr/ADR-008-messaging-infrastructure.md)). The Kafka listener calls it (see Kafka consumer).
 
 | Command              | Seat change | Event                                  |
 |:---------------------|:------------|:---------------------------------------|
@@ -420,6 +420,29 @@ Each attempt is one transaction: the inbox insert, the seat step and the outbox 
 The events keep the correlation id of the command. Their key is the order id and their topic is `inventory.events`. A payload that inventory does not handle throws `UnsupportedMessageException` before any database work.
 
 For a hold, the handler asks the Redis gate before the transaction. When the gate rejects, the handler writes `SeatHoldRejected(SEAT_UNAVAILABLE)` and changes no seat. The handler releases the gate key of the order after the transaction when the hold was not granted, when the message was a repeat and when the handler fails. A release command releases the key after the commit.
+
+### Kafka consumer
+
+`InventoryCommandListener` reads `inventory.commands` in the group `inventory-service` ([ADR-008](adr/ADR-008-messaging-infrastructure.md)). It decodes the value with `MessageCodec`, calls the handler and commits the offset by hand after the handler returns, so after the database commit.
+
+A failing message does not block the others:
+
+| Failure                                            | Result                              |
+|:---------------------------------------------------|:------------------------------------|
+| The handler fails, for example a database error    | 3 retries, 1 s apart, then `.dlt`   |
+| Unknown type, invalid message, unsupported payload | `.dlt` at once, no retry            |
+| The record has no value                            | `.dlt` at once, no retry            |
+
+A record in `inventory.commands.dlt` keeps its key and its partition. Its offset is committed at once, so a restart does not send it again. A consumer group that is new reads the topic from the beginning.
+
+While the handler runs, the correlation id of the envelope is in the logging context. The log pattern prints it in every line.
+
+| Setting                             | Default | Meaning                            |
+|:------------------------------------|:--------|:-----------------------------------|
+| `inventory.consumer.enabled`        | `true`  | Start the listener                 |
+| `inventory.consumer.retry-interval` | `1s`    | Wait between two tries of a record |
+
+The service declares `inventory.commands` and `inventory.commands.dlt` with 3 partitions, so it can start before the producer. The `test` profile turns the listener off.
 
 ## Decision records
 
