@@ -14,6 +14,7 @@ Rules every module follows. A rule is **Planned** until the first module applies
 - Money: `NUMERIC(19, 4)` in the database, `BigDecimal` in code.
 - An optional dependency such as Redis never fails a request. The failure is logged as a warning and the request continues without it.
 - A scheduled job has an `enabled` setting and an `interval` setting. The `test` profile turns jobs off, so tests decide when a job runs.
+- A Kafka listener has an `enabled` setting. The `test` profile turns listeners off, and a test that needs one turns it on.
 
 ## Database
 

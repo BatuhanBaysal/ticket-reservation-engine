@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Outbox table `outbox_event` and `OutboxWriter` in `inventory-service`. The expiry job writes a `SeatHoldExpired` event for each expired hold in the same transaction
 - Outbox poller and cleanup in `inventory-service`: the poller sends the unpublished rows to Kafka in order, stops at the first failed send and keeps the rows that were sent. Both jobs can be turned off. The producer and the topic `inventory.events` are configured
 - Inbox table `processed_message` and `SeatCommandHandler` in `inventory-service`: a command becomes a seat change and an event in one transaction with the inbox row, and a repeated message has no second effect
+- Kafka consumer of `inventory-service`: it reads `inventory.commands`, calls the command handler and commits the offset after the database commit. A failing message is retried 3 times and goes to `inventory.commands.dlt`, bad messages go there at once. The correlation id is in every log line of a message
 
 ### Changed
 - ADR-005 and the engineering standards record the springdoc check: version 3.2.0 is built on Spring Boot 4.1. The project stays on Spring Boot 4.1.x
